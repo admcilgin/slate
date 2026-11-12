@@ -51,7 +51,8 @@ node {{SLATE}}/cli.js asset ./login.png        # → {"src":"/assets/abc-login.p
 node {{SLATE}}/cli.js add main - <<'JSON'
 [
   {"id":"login-shot","type":"image","x":80,"y":700,"w":360,"h":640,"src":"/assets/abc-login.png"},
-  {"id":"login-arrow","type":"line","x":448,"y":900,"points":[[0,0],[140,0]],"arrow":true,"label":"onSubmit"},
+  {"id":"login-pin","type":"pin","x":240,"y":1180,"text":"1"},
+  {"id":"login-arrow","type":"line","from":"login-pin","to":"login-api","arrow":true,"label":"onSubmit"},
   {"id":"login-api","type":"code","x":596,"y":840,"w":360,"title":"POST /api/login → 200","text":{"token":"…","user":{"id":42}}}
 ]
 JSON

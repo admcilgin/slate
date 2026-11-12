@@ -32,6 +32,18 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .rz { display: none; position: absolute; right: -9px; bottom: -9px; width: 12px; height: 12px; border-radius: 50%;
   background: var(--card); border: 1.5px solid var(--accent); cursor: nwse-resize; pointer-events: auto; }
 .item.sel .rz { display: block; }
+.ep { display: none; position: absolute; width: 12px; height: 12px; margin: -6px; border-radius: 50%; background: var(--card); border: 1.5px solid var(--accent); cursor: crosshair; pointer-events: auto; }
+.item.sel .ep { display: block; }
+.item.line.sel { outline: none; }
+.item.target { outline: 2px solid var(--accent); outline-offset: 5px; }
+.pin, .pin .body { border-radius: 50%; }
+.pin .body { display: grid; place-items: center; color: #fff; font-weight: 700; box-shadow: 0 1px 4px rgba(0,0,0,.25); }
+.pin .txt { min-height: 0; line-height: 1; white-space: nowrap; }
+.code .tools { position: absolute; top: 7px; right: 8px; display: flex; gap: 4px; opacity: 0; transition: opacity .12s; }
+.code:hover .tools, .code.sel .tools, .code .tools:focus-within { opacity: 1; }
+.code .tools button { font-size: 11px; padding: 2px 8px; border-radius: 6px; background: var(--bg); border: .5px solid var(--line); color: var(--sub); }
+.code .tools button:hover { color: var(--ink); }
+.code .more { margin-top: 4px; font: 12px/1.55 ui-monospace, "SF Mono", Menlo, monospace; color: var(--sub); }
 .txt { white-space: pre-wrap; overflow-wrap: anywhere; min-height: 1.4em; }
 .editing .txt:empty::before { content: 'Type…'; color: var(--sub); }
 .title { font-weight: 600; font-size: 13px; margin-bottom: 8px; white-space: pre-wrap; }

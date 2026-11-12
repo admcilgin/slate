@@ -7,13 +7,14 @@ const SERIES = ['#007aff', '#34c759', '#ff9500', '#ff3b30', '#af52de', '#ffcc00'
 const AUTO = new Set(['text', 'tasks', 'table', 'link', 'code']);   // height grows with content
 const LIVE = new Set(['image', 'video', 'embed']);          // never rebuilt while moving/resizing (would reload media)
 const TEXTY = new Set(['text', 'note', 'shape']);
-const KEYS = { v: 'select', h: 'hand', p: 'draw', l: 'line', a: 'arrow', r: 'rect', o: 'ellipse', t: 'text', n: 'note' };
+const KEYS = { v: 'select', h: 'hand', p: 'draw', l: 'line', a: 'arrow', r: 'rect', o: 'ellipse', t: 'text', n: 'note', m: 'pin' };
 const DEF = {
   text: { w: 240, h: 28, text: '' },
   note: { w: 200, h: 200, text: '', color: '#ffcc00' },
   shape: { w: 160, h: 100, shape: 'rect', text: '', align: 'center' },
   line: {}, draw: {},
   code: { w: 340, h: 60, title: '', text: '' },
+  pin: { w: 28, h: 28, text: '1' },
   image: { w: 320, h: 220 }, video: { w: 400, h: 225 }, embed: { w: 480, h: 300 }, link: { w: 300, h: 62 },
   table: { w: 380, h: 110, rows: [['', '', ''], ['', '', ''], ['', '', '']] },
   tasks: { w: 260, h: 90, title: 'Tasks', tasks: [{ text: '', done: false }] },
@@ -140,12 +141,23 @@ const R = {
   },
   code(i, b, ed) {
     if (ed || i.title) b.append(bind(i, 'title', 'title', ed));
-    if (!ed) return b.append(h('pre', { className: 'txt', innerHTML: hl(i.text || '') }));
+    if (!ed) {
+      const lines = (i.text || '').split('\n'), long = lines.length > 8, cut = long && i.collapsed;
+      b.append(h('pre', { className: 'txt', innerHTML: hl(cut ? lines.slice(0, 6).join('\n') : i.text || '') }));
+      if (cut) b.append(h('div', { className: 'more', textContent: `… ${lines.length - 6} more lines` }));
+      const copy = h('button', { textContent: 'Copy', title: 'Copy to clipboard', onclick: () => navigator.clipboard.writeText(i.text || '').then(() => { copy.textContent = 'Copied'; setTimeout(() => copy.textContent = 'Copy', 1200); }) });
+      const fold = long ? h('button', { textContent: i.collapsed ? 'Expand' : 'Collapse', onclick: () => { if (i.collapsed) delete i.collapsed; else i.collapsed = true; refresh(i); relink(new Set([i.id])); commit(); } }) : null;
+      return b.append(h('div', { className: 'tools' }, fold, copy));
+    }
     const tx = bind(i, 'text', 'txt', ed);
     tx.onkeydown = ev => { if (ev.key === 'Tab') { ev.preventDefault(); document.execCommand('insertText', false, '  '); } };
     b.append(tx);
   },
   draw(i, b) { b.innerHTML = ptsSVG(i); },
+  pin(i, b, ed) {
+    b.style.cssText = `background:${i.color || '#ff3b30'};font-size:${Math.max(10, Math.min(i.w, i.h) * .5)}px`;
+    b.append(bind(i, 'text', 'txt', ed));
+  },
   image(i, b) { b.append(h('img', { src: i.src || '', alt: i.alt || '', draggable: false })); },
   video(i, b) { b.append(h('video', { src: i.src || '', controls: true, preload: 'metadata' })); },
   embed(i, b) {
@@ -233,7 +245,11 @@ function refresh(i) {
   e.dataset.id = i.id;
   e.append(b);
   if (R[i.type]) R[i.type](i, b, editing === i.id, e); else b.textContent = `Unknown type: ${i.type}`;
-  e.append(h('div', { className: 'rz' }));
+  if (i.type === 'line') [0, 1].forEach(end => { // lines get a draggable handle on each end instead of a resize corner
+    const q = i.points[end ? i.points.length - 1 : 0], d = h('div', { className: 'ep', style: `left:${q[0]}px;top:${q[1]}px` });
+    d.dataset.end = end; e.append(d);
+  });
+  else e.append(h('div', { className: 'rz' }));
   els.set(i.id, e);
   old ? old.replaceWith(e) : world.append(e);
   place(i);
@@ -243,7 +259,55 @@ function render() {
   world.replaceChildren(marq);
   els.clear();
   board.items.forEach(refresh);
+  for (const l of board.items) if (l.type === 'line' && (l.from || l.to) && route(l)) refresh(l); // real heights are known only now
   syncUI();
+}
+
+// ---------- connectors: a line's `from` / `to` hold the id of the item that end is attached to ----------
+
+const box = i => ({ x: i.x, y: i.y, w: i.w, h: AUTO.has(i.type) ? Math.max(i.h, els.get(i.id)?.offsetHeight || 0) : i.h });
+const mid = i => { const b = box(i); return [b.x + b.w / 2, b.y + b.h / 2]; };
+
+// Where a ray from the item's centre towards point t leaves the item (plus a small gap).
+function edge(i, t) {
+  const b = box(i), cx = b.x + b.w / 2, cy = b.y + b.h / 2, dx = t[0] - cx, dy = t[1] - cy, hw = b.w / 2 + 6, hh = b.h / 2 + 6;
+  if (!dx && !dy) return [cx, cy];
+  const k = i.type === 'pin' || i.shape === 'ellipse' ? 1 / Math.hypot(dx / hw, dy / hh) : Math.min(hw / Math.abs(dx || 1e-9), hh / Math.abs(dy || 1e-9));
+  return [r(cx + dx * k), r(cy + dy * k)];
+}
+
+// Re-aim a line's attached ends at their items. Returns false if nothing is attached.
+function route(l) {
+  for (const k of ['from', 'to']) { const t = byId(l[k]); if (l[k] != null && (!t || isPts(t))) delete l[k]; }
+  const a = byId(l.from), b = byId(l.to);
+  if (!a && !b) return false;
+  const P = l.points.map(q => [q[0] + l.x, q[1] + l.y]);
+  if (P.length < 2) P.push([...P[0]]);
+  const n = P.length;
+  if (a) P[0] = edge(a, n > 2 || !b ? P[1] : mid(b));
+  if (b) P[n - 1] = edge(b, n > 2 || !a ? P[n - 2] : mid(a));
+  l.x = 0; l.y = 0; l.points = P;
+  norm(l);
+  return true;
+}
+
+// Items in `ids` moved or changed size: lines attached to them follow.
+function relink(ids) { for (const l of board.items) if (l.type === 'line' && (ids.has(l.from) || ids.has(l.to)) && route(l)) refresh(l); }
+
+let marked = null;
+function mark(el) { if (marked === el) return; marked?.classList.remove('target'); el?.classList.add('target'); marked = el; }
+
+// Drag one end of a line to p; if it is over another item, attach to it.
+function setEnd(l, end, p, e) {
+  const P = l.points.map(q => [q[0] + l.x, q[1] + l.y]), key = end ? 'to' : 'from', other = l[end ? 'from' : 'to'];
+  P[end ? P.length - 1 : 0] = [p.x, p.y];
+  l.x = 0; l.y = 0; l.points = P;
+  const hit = document.elementsFromPoint(e.clientX, e.clientY).map(x => x.closest('.item'))
+    .find(x => x && x.dataset.id !== l.id && x.dataset.id !== other && !isPts(byId(x.dataset.id) || l));
+  if (hit) l[key] = hit.dataset.id; else delete l[key];
+  mark(hit || null);
+  if (!route(l)) norm(l);
+  refresh(l);
 }
 
 function applyView() {
@@ -337,17 +401,32 @@ function stopEdit() {
     if (i.type === 'code') try { i.text = JSON.stringify(JSON.parse(i.text), null, 2); } catch {} // valid JSON gets pretty-printed
     if (i.type === 'line' && !i.label?.trim()) delete i.label;
     if (i.type === 'text' && !i.text.trim()) { board.items = board.items.filter(x => x !== i); els.get(i.id)?.remove(); els.delete(i.id); sel.delete(i.id); }
-    else LIVE.has(i.type) ? place(i) : refresh(i);
+    else { LIVE.has(i.type) ? place(i) : refresh(i); relink(new Set([i.id])); }
   }
   commit(); syncUI();
 }
 
 function apply(fn) { selected().forEach(i => { fn(i); refresh(i); }); commit(); syncUI(); }
 function del() { if (!sel.size) return; board.items = board.items.filter(i => !sel.has(i.id)); sel.clear(); render(); commit(); }
-function dup() {
-  const copies = selected().map(i => ({ ...structuredClone(i), id: uid(), x: i.x + 24, y: i.y + 24 }));
-  if (!copies.length) return;
+// Add copies of items, shifted by dx/dy. Connectors between copied items stay connected; others are detached.
+function insert(items, dx, dy) {
+  if (!items.length) return;
+  const ids = new Map(items.map(i => [i.id, uid()]));
+  const copies = items.map(i => {
+    const c = { ...structuredClone(i), id: ids.get(i.id), x: r(i.x + dx), y: r(i.y + dy) };
+    for (const k of ['from', 'to']) if (c[k] != null) { if (ids.has(c[k])) c[k] = ids.get(c[k]); else delete c[k]; }
+    return c;
+  });
   board.items.push(...copies); sel = new Set(copies.map(i => i.id)); render(); commit();
+}
+const dup = () => insert(selected(), 24, 24);
+
+function pasteItems(items) {
+  items = items.filter(i => i && DEF[i.type]).map(i => norm(structuredClone(i)));
+  if (!items.length) return;
+  const x0 = Math.min(...items.map(i => i.x)), x1 = Math.max(...items.map(i => i.x + i.w));
+  const y0 = Math.min(...items.map(i => i.y)), y1 = Math.max(...items.map(i => i.y + i.h)), c = center();
+  insert(items, c.x - (x0 + x1) / 2, c.y - (y0 + y1) / 2); // land in the middle of the view, on whichever board is open
 }
 function reorder(front) {
   const S = selected(), rest = board.items.filter(i => !sel.has(i.id));
@@ -392,7 +471,7 @@ function syncUI() {
     sep();
     btn('Front', 'Bring to front', () => reorder(true), false, true);
     btn('Back', 'Send to back', () => reorder(false), false, true);
-    btn('Copy', 'Duplicate (⌘D)', dup, false, true);
+    btn('Duplicate', 'Duplicate (⌘D). ⌘C / ⌘V also work, across boards', dup, false, true);
     btn('Delete', 'Delete (⌫)', del, false, true);
   }
   renderPanel();
@@ -434,6 +513,7 @@ stage.addEventListener('pointerdown', e => {
   if (e.button === 1 || space || tool === 'hand') { drag = { k: 'pan', sx: e.clientX, sy: e.clientY, vx: view.x, vy: view.y }; return; }
 
   if (tool === 'select') {
+    if (it && e.target.classList.contains('ep')) { sel = new Set([id]); drag = { k: 'ep', it, end: +e.target.dataset.end }; return syncUI(); }
     if (it && e.target.classList.contains('rz')) { drag = { k: 'rz', it, p, o: structuredClone(it) }; return; }
     if (it) {
       if (dbl) return startEdit(it);
@@ -449,13 +529,26 @@ stage.addEventListener('pointerdown', e => {
   }
 
   sel.clear();
-  if (tool === 'draw' || tool === 'line' || tool === 'arrow') {
+  if (tool === 'draw') {
     // points are absolute until pointerup, when norm() rebases them onto the bounding box
-    const i = { id: uid(), type: tool === 'draw' ? 'draw' : 'line', x: 0, y: 0, w: 0, h: 0, points: tool === 'draw' ? [[p.x, p.y]] : [[p.x, p.y], [p.x, p.y]] };
-    if (tool === 'arrow') i.arrow = true;
+    const i = { id: uid(), type: 'draw', x: 0, y: 0, w: 0, h: 0, points: [[p.x, p.y]] };
     board.items.push(i); refresh(i);
-    drag = { k: tool === 'draw' ? 'draw' : 'line', it: i };
+    drag = { k: 'draw', it: i };
     return;
+  }
+  if (tool === 'line' || tool === 'arrow') {
+    const i = { id: uid(), type: 'line', x: p.x, y: p.y, w: 0, h: 0, points: [[0, 0], [0, 0]] };
+    if (tool === 'arrow') i.arrow = true;
+    if (it && !isPts(it)) i.from = it.id; // started on an item: attach to it
+    board.items.push(i); refresh(i);
+    drag = { k: 'ep', it: i, end: 1, creating: true };
+    return;
+  }
+  if (tool === 'pin') { // each click drops the next number; the tool stays active
+    const n = Math.max(0, ...board.items.filter(x => x.type === 'pin').map(x => parseInt(x.text) || 0)) + 1;
+    add({ type: 'pin', x: p.x - 14, y: p.y - 14, text: String(n) });
+    tool = 'pin'; sel.clear();
+    return syncUI();
   }
   const type = tool === 'rect' || tool === 'ellipse' ? 'shape' : tool;
   const i = { ...structuredClone(DEF[type]), id: uid(), type, x: p.x, y: p.y, w: 0, h: 0 };
@@ -471,13 +564,19 @@ stage.addEventListener('pointermove', e => {
   const p = toWorld(e), dx = p.x - (d.p?.x || 0), dy = p.y - (d.p?.y || 0);
   if (d.k === 'move') {
     d.moved = true;
-    for (const [id, o] of d.o) { const i = byId(id); i.x = r(o.x + dx); i.y = r(o.y + dy); place(i); }
+    const ids = new Set(d.o.keys());
+    for (const [id, o] of d.o) {
+      const i = byId(id); i.x = r(o.x + dx); i.y = r(o.y + dy); place(i);
+      if (i.type === 'line') for (const k of ['from', 'to']) if (i[k] != null && !ids.has(i[k])) delete i[k]; // dragging a connector away detaches it
+    }
+    relink(ids);
   } else if (d.k === 'rz') {
     const i = d.it, o = d.o, min = isPts(i) ? 1 : 24;
     d.moved = true;
     i.w = r(Math.max(min, o.w + dx)); i.h = r(Math.max(min, o.h + dy));
     if (isPts(i)) i.points = o.points.map(([x, y]) => [r(x * i.w / (o.w || 1)), r(y * i.h / (o.h || 1))]);
     LIVE.has(i.type) ? place(i) : refresh(i);
+    relink(new Set([i.id]));
   } else if (d.k === 'marq') {
     const x = Math.min(p.x, d.p.x), y = Math.min(p.y, d.p.y), w = Math.abs(dx), hh = Math.abs(dy);
     marq.style.cssText = `display:block;left:${x}px;top:${y}px;width:${w}px;height:${hh}px`;
@@ -488,8 +587,8 @@ stage.addEventListener('pointermove', e => {
     const q = d.it.points.at(-1);
     // ponytail: rebuilds the whole stroke per point (O(n²) for very long strokes); append to the path if drawing ever lags
     if (Math.hypot(p.x - q[0], p.y - q[1]) > 2 / view.z) { d.it.points.push([p.x, p.y]); refresh(d.it); }
-  } else if (d.k === 'line') {
-    d.it.points[1] = [p.x, p.y]; refresh(d.it);
+  } else if (d.k === 'ep') {
+    setEnd(d.it, d.end, p, e);
   } else if (d.k === 'new') {
     const i = d.it;
     i.x = Math.min(p.x, d.p.x); i.y = Math.min(p.y, d.p.y); i.w = Math.abs(dx); i.h = Math.abs(dy);
@@ -502,11 +601,17 @@ function endDrag() {
   drag = null;
   marq.style.display = 'none';
   if (!d) return;
-  if (d.k === 'draw' || d.k === 'line') {
+  const drop = i => { board.items = board.items.filter(x => x !== i); els.get(i.id).remove(); els.delete(i.id); };
+  if (d.k === 'draw') {
     const i = d.it;
     norm(i);
-    if (i.w + i.h < 4) { board.items = board.items.filter(x => x !== i); els.get(i.id).remove(); els.delete(i.id); }
-    else { refresh(i); if (d.k === 'line') { sel = new Set([i.id]); tool = 'select'; } }
+    if (i.w + i.h < 4) drop(i); else refresh(i);
+    commit();
+  } else if (d.k === 'ep') {
+    const i = d.it;
+    mark(null);
+    if (d.creating && i.w + i.h < 4) drop(i);
+    else if (d.creating) { sel = new Set([i.id]); tool = 'select'; }
     commit();
   } else if (d.k === 'new') {
     const i = d.it;
@@ -580,10 +685,24 @@ function addURL(url, p) {
 addEventListener('paste', e => {
   if (typing(e)) return;
   const files = [...e.clipboardData.files], txt = e.clipboardData.getData('text').trim();
+  let clip;
+  try { clip = JSON.parse(txt); } catch {}
   if (files.length) addFiles(files, center());
+  else if (clip?.slate && Array.isArray(clip.items)) pasteItems(clip.items);
+  else if (clip && typeof clip === 'object') add({ ...centered('code'), text: clip }); // pasted JSON becomes a formatted block
   else if (/^https?:\/\/\S+$/i.test(txt)) addURL(txt, center());
   else if (txt) add({ type: 'text', text: txt, ...center() });
 });
+
+// ⌘C / ⌘X put the selected items on the system clipboard as JSON, so they paste into any board (or any text editor).
+function onCopy(e) {
+  if (typing(e) || !sel.size || String(getSelection())) return false;
+  e.clipboardData.setData('text/plain', JSON.stringify({ slate: 1, items: selected() }));
+  e.preventDefault();
+  return true;
+}
+addEventListener('copy', onCopy);
+addEventListener('cut', e => { if (onCopy(e)) del(); });
 stage.addEventListener('dragover', e => e.preventDefault());
 stage.addEventListener('drop', e => {
   e.preventDefault();

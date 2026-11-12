@@ -39,9 +39,10 @@ Common fields on every item: `id`, `type`, `x`, `y`, `w`, `h`, and optional `col
 | `text` | `text` | 240×28 | Height grows with content. `color` is the text color. |
 | `note` | `text` | 200×200 | Sticky note. `color` tints the paper (default `#ffcc00`). |
 | `shape` | `shape`: `"rect"` \| `"ellipse"`, `text`, `fill`: bool | 160×100 | `color` is the border; `fill` adds a light tint of it. Text is centered by default. |
-| `line` | `points`: `[[x,y],…]`, `arrow`: bool, `width`: 2 \| 4 \| 8, `label` | from points | Points are **relative to the item's `x`,`y`**. Arrowhead sits on the last point. More than two points makes a polyline. `label` is short text shown on the middle of the line. Leave out `w`/`h`. |
+| `line` | `points`: `[[x,y],…]`, `arrow`: bool, `width`: 2 \| 4 \| 8, `label`, `from`, `to` | from points | Points are **relative to the item's `x`,`y`**. Arrowhead sits on the last point. More than two points makes a polyline. `label` is short text shown on the middle of the line. Leave out `w`/`h`. `from` / `to` take the `id` of another item and attach that end to it: Slate aims the end at the item's edge and keeps it there when the item moves, so with both set you can omit `points`. |
 | `draw` | `points`, `width` | from points | Freehand stroke, same point rules as `line`, rendered smoothed. |
-| `code` | `title`, `text` | 340×60 | Monospace block for code, endpoints and JSON responses, with syntax colouring. `title` is an optional header such as `"GET /api/users → 200"`. `text` is a string, or put a raw JSON object/array there and Slate pretty-prints it. Height grows. |
+| `code` | `title`, `text` | 340×60 | Monospace block for code, endpoints and JSON responses, with syntax colouring and a copy button. Set `collapsed`: true to show only the first 6 lines of a long block. `title` is an optional header such as `"GET /api/users → 200"`. `text` is a string, or put a raw JSON object/array there and Slate pretty-prints it. Height grows. |
+| `pin` | `text` | 28×28 | Round numbered marker for calling out spots on a screenshot. `text` is the number or letter; `color` fills it (default red). Pair each pin with a `text`/`note`/`code` item that starts with the same number. |
 | `image` | `src`, `alt` | 320×220 | `src` is `/assets/…` or an http(s) URL. Set `h` to match the aspect ratio. |
 | `video` | `src` | 400×225 | Local file in `/assets/` or a direct video URL. For YouTube/Vimeo use `embed`. |
 | `embed` | `url` | 480×300 | Iframe. YouTube, Vimeo, Loom and Figma share links are converted to their embed form automatically. Many ordinary sites refuse iframes; use `link` for those. |
@@ -66,13 +67,15 @@ Palette the UI offers (use these to stay consistent): `#8e8e93` gray, `#ff3b30` 
 {"id":"mrr","type":"chart","x":360,"y":360,"chart":"line","title":"MRR","data":[{"label":"Sep","value":1200},{"label":"Oct","value":1850}]}
 ```
 
-To annotate a screenshot: place the `image`, then for each callout add a `line` with `arrow` (and a short `label` if useful) from the spot on the image to a `text`, `note` or `code` item beside it holding the detail — the flow, the endpoint, or the response JSON.
+To connect two items, add `{"type":"line","from":"<id A>","to":"<id B>","arrow":true}`. No coordinates needed; the arrow follows both items.
 
-To connect two items with an arrow, start the line at the first item's edge and end it at the second's: for a horizontal link from A to B at the same height, `x = A.x + A.w + 8`, `y = A.y + A.h / 2`, `points = [[0,0],[B.x - x - 8, 0]]`. Arrows are not attached to shapes, so move them together.
+To annotate a screenshot, place the `image`, then either:
+- drop numbered `pin`s on the spots and put matching numbered notes beside the image (cleanest when there are many callouts), or
+- add a `line` with `arrow` whose first point is the spot on the image (give `x`,`y` and `points`) and whose `to` is the `text`, `note` or `code` item holding the detail — the flow, the endpoint, or the response JSON.
 
 ## What Slate cannot do
 
-Links between boards, grouping or frames, connectors that follow shapes, rich text, multi-series charts, rotation, real-time multi-user editing. Don't write fields or types not listed here; unknown types render as a placeholder.
+Links between boards, grouping or frames (pins and free arrow ends don't move with an image), rich text, multi-series charts, rotation, real-time multi-user editing. Don't write fields or types not listed here; unknown types render as a placeholder.
 
 ## Code map
 

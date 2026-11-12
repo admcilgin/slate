@@ -25,8 +25,9 @@ Open http://localhost:4747. To use another port: `PORT=5000 node server.js`.
 - Images and videos (drop them on the canvas, paste them, or pick a file)
 - Links and embeds (YouTube, Vimeo, Figma, Loom)
 - Task lists with due dates, plus a panel listing every open task on the board
-- Code and JSON blocks with syntax colouring; valid JSON is pretty-printed
-- Labels on lines and arrows
+- Code and JSON blocks with syntax colouring, collapse and copy; pasted JSON is formatted automatically
+- Arrows that attach to items and follow them, with labels and draggable ends
+- Numbered pins for calling out spots on a screenshot
 - Tables
 - Bar, line and pie charts
 - Timelines
@@ -42,9 +43,10 @@ Open http://localhost:4747. To use another port: `PORT=5000 node server.js`.
 | Zoom | Pinch, or ⌘/Ctrl + scroll |
 | Select several | Drag a box, or Shift-click |
 | Undo / redo | ⌘Z / ⇧⌘Z |
+| Copy / cut / paste, also between boards | ⌘C / ⌘X / ⌘V |
 | Duplicate | ⌘D |
 | Delete | Backspace |
-| Tools | V select, H pan, P draw, L line, A arrow, R rectangle, O ellipse, T text, N note |
+| Tools | V select, H pan, P draw, L line, A arrow, R rectangle, O ellipse, T text, N note, M numbered pin |
 
 Everything else (images, links, tables, tasks, charts, timelines) is in the **+** menu. Boards are switched, created, renamed and deleted from the menu in the top-left corner.
 
@@ -86,7 +88,7 @@ After that you can say "put this flow on my Slate board" from any repo.
 
 ## Limits
 
-One person at a time: if you and an agent save within the same quarter-second, the last write wins. Arrows don't follow the shapes they point at. There is no grouping, rich text inside items, or links between boards.
+One person at a time: if you and an agent save within the same quarter-second, the last write wins. There is no grouping, rich text inside items, or links between boards.
 
 ## Code
 
