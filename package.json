@@ -1,0 +1,9 @@
+{
+  "name": "slate",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Local whiteboard that agents can read and write",
+  "scripts": {
+    "start": "node server.js"
+  }
+}

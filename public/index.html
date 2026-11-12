@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Slate</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="stage"><div id="world"><div id="marq"></div></div></div>
+
+<div id="bar" class="glass" hidden></div>
+
+<div id="corner">
+  <button id="tasksBtn" class="glass" title="All tasks on this board">Tasks</button>
+  <button id="zoom" class="glass" title="Reset zoom">100%</button>
+</div>
+<aside id="panel" class="glass" hidden></aside>
+<button id="boardBtn" class="glass" popovertarget="boardMenu" title="Boards">main</button>
+<div id="boardMenu" popover class="glass menu"></div>
+<div id="status" class="glass" hidden>Not saved. Is the server running?</div>
+
+<nav id="tools" class="glass">
+  <button data-tool="select" title="Select (V)" aria-label="Select"><svg viewBox="0 0 18 18"><path d="M4 2l10 7-4.5 1L8 14.5z"/></svg></button>
+  <button data-tool="hand" title="Pan (H, or hold Space)" aria-label="Pan"><svg viewBox="0 0 18 18"><path d="M9 2v14M2 9h14M6.5 4.5L9 2l2.5 2.5M6.5 13.5L9 16l2.5-2.5M4.5 6.5L2 9l2.5 2.5M13.5 6.5L16 9l-2.5 2.5"/></svg></button>
+  <i></i>
+  <button data-tool="draw" title="Draw (P)" aria-label="Draw"><svg viewBox="0 0 18 18"><path d="M2 13c3-9 5 5 7-2s4-6 7-3"/></svg></button>
+  <button data-tool="line" title="Line (L)" aria-label="Line"><svg viewBox="0 0 18 18"><path d="M3 15L15 3"/></svg></button>
+  <button data-tool="arrow" title="Arrow (A)" aria-label="Arrow"><svg viewBox="0 0 18 18"><path d="M3 15L15 3M8 3h7v7"/></svg></button>
+  <button data-tool="rect" title="Rectangle (R)" aria-label="Rectangle"><svg viewBox="0 0 18 18"><rect x="3" y="4" width="12" height="10" rx="2"/></svg></button>
+  <button data-tool="ellipse" title="Ellipse (O)" aria-label="Ellipse"><svg viewBox="0 0 18 18"><ellipse cx="9" cy="9" rx="6.5" ry="5.5"/></svg></button>
+  <button data-tool="text" title="Text (T)" aria-label="Text"><svg viewBox="0 0 18 18"><path d="M4 4h10M9 4v11"/></svg></button>
+  <button data-tool="note" title="Note (N)" aria-label="Note"><svg viewBox="0 0 18 18"><path d="M3 3h12v8l-4 4H3zM15 11h-4v4"/></svg></button>
+  <i></i>
+  <button popovertarget="ins" title="Insert" aria-label="Insert"><svg viewBox="0 0 18 18"><path d="M9 3v12M3 9h12"/></svg></button>
+</nav>
+
+<div id="ins" popover class="glass menu">
+  <button data-ins="media">Image or video</button>
+  <button data-ins="link">Link or embed</button>
+  <button data-ins="tasks">Task list</button>
+  <button data-ins="table">Table</button>
+  <button data-ins="chart">Chart</button>
+  <button data-ins="timeline">Timeline</button>
+</div>
+
+<input id="file" type="file" multiple accept="image/*,video/*" hidden>
+
+<dialog id="ask" class="glass">
+  <form method="dialog">
+    <label for="askInput"></label>
+    <input id="askInput" autocomplete="off" spellcheck="false">
+    <menu><button value="ok">Add</button><button value="">Cancel</button></menu>
+  </form>
+</dialog>
+
+<script src="app.js"></script>
+</body>
+</html>
