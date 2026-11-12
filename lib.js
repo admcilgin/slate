@@ -7,7 +7,7 @@ const BOARDS = path.join(DATA, 'boards');
 const RUN = path.join(DATA, '.server.json'); // written by a running server: { port, pid, url }
 const NAME = /^[\p{L}\p{N}_][\p{L}\p{N}_ -]{0,59}$/u; // board name = file name, so keep it tame
 const EMPTY = '{"items":[\n]}\n';
-const TYPES = ['text', 'note', 'shape', 'line', 'draw', 'code', 'pin', 'image', 'video', 'embed', 'link', 'table', 'tasks', 'chart', 'timeline', 'stat', 'callout', 'kanban'];
+const TYPES = ['text', 'note', 'shape', 'line', 'draw', 'code', 'pin', 'image', 'video', 'embed', 'link', 'table', 'tasks', 'chart', 'timeline', 'stat', 'callout', 'kanban', 'frame'];
 
 const file = n => path.join(BOARDS, n + '.json');
 const list = () => fs.readdirSync(BOARDS).filter(f => f.endsWith('.json')).map(f => f.slice(0, -5)).filter(n => NAME.test(n)).sort((a, b) => a.localeCompare(b));

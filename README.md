@@ -20,7 +20,8 @@ Open http://localhost:4747. To use another port: `PORT=5000 node server.js`.
 
 ## What you can put on a board
 
-- Freehand drawing, lines, arrows, rectangles, ellipses
+- Freehand drawing, lines, arrows, rectangles, ellipses, diamonds
+- Straight or right-angled arrows, dashed strokes, heads on one or both ends
 - Text and sticky notes, with size, bold, italic, alignment and colour
 - Images and videos (drop them on the canvas, paste them, or pick a file)
 - Links and embeds (YouTube, Vimeo, Figma, Loom)
@@ -28,7 +29,11 @@ Open http://localhost:4747. To use another port: `PORT=5000 node server.js`.
 - Code and JSON blocks with syntax colouring, collapse and copy; pasted JSON is formatted automatically
 - Arrows that attach to items and follow them, with labels and draggable ends
 - Numbered pins for calling out spots on a screenshot
-- Grouping, locking, alignment guides while dragging
+- Frames: named regions that carry what is inside them
+- Grouping, locking, alignment guides while dragging, align and distribute
+- Resize from any corner or side; scale a whole selection from its corners
+- Any item can link to a web page or to another board
+- PDF export of the board, a selection or a frame
 - Search across all boards
 - Tables
 - Bar, line and pie charts
@@ -46,16 +51,17 @@ Open http://localhost:4747. To use another port: `PORT=5000 node server.js`.
 | Select several | Drag a box, or Shift-click |
 | Undo / redo | ⌘Z / ⇧⌘Z |
 | Copy / cut / paste, also between boards | ⌘C / ⌘X / ⌘V |
-| Duplicate | ⌘D |
+| Duplicate | ⌘D, or Alt-drag |
+| Export the selection or the whole board as PDF | ⌘P |
 | Group / ungroup (Alt-click picks one item in a group) | ⌘G / ⇧⌘G |
 | Nudge | Arrow keys (Shift for 10 px) |
 | Move without snapping | Hold ⌘ while dragging |
 | Fit board or selection on screen | F |
 | Search all boards | ⌘K |
 | Delete | Backspace |
-| Tools | V select, H pan, P draw, L line, A arrow, R rectangle, O ellipse, T text, N note, M numbered pin |
+| Tools | V select, H pan, P draw, L line, A arrow, R rectangle, O ellipse, D diamond, T text, N note, M numbered pin |
 
-Everything else (images, links, tables, tasks, charts, timelines, metric cards, callouts, kanban boards) is in the **+** menu. Boards are switched, created, renamed and deleted from the menu in the top-left corner.
+Everything else (images, links, tables, tasks, charts, timelines, metric cards, callouts, kanban boards, frames) is in the **+** menu. Boards are switched, created, renamed and deleted from the menu in the top-left corner.
 
 ## Working with an agent
 

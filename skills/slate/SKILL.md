@@ -40,6 +40,8 @@ For large or quote-heavy JSON, pass `-` and pipe it in: `node {{SLATE}}/cli.js a
 - Change only what the user asked for. Never remove or rewrite items you didn't create in this task unless asked.
 - The user may be editing the same board. Run `show` again right before a `set` or `rm` if time has passed since you last looked.
 - Images and videos must go through `asset` (or be http(s) URLs). Don't reference paths outside Slate.
+- A `frame` is a named region. To put items "in" a frame, give them positions inside its rectangle; to make a new section, add the frame first and its contents after it in the same `add`.
+- For a flowchart use `shape` items (`diamond` for decisions) joined by `line` items with `from`, `to`, `arrow` and `elbow`: true.
 - To update a task list, kanban, table, chart or timeline, `set` the whole array field (`tasks`, `rows`, `data`, `events`, `columns`) with the changed copy.
 
 ## Example

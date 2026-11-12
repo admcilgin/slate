@@ -9,7 +9,7 @@ const LIVE = new Set(['image', 'video', 'embed']);          // never rebuilt whi
 const TEXTY = new Set(['text', 'note', 'shape']);
 const CARDS = new Set(['tasks', 'table', 'callout', 'kanban', 'stat', 'code', 'link']); // cards whose text takes size, bold, italic and align
 const INK = new Set(['tasks', 'table', 'kanban', 'code', 'link']);                      // …and where color is the text colour
-const KEYS = { v: 'select', h: 'hand', p: 'draw', l: 'line', a: 'arrow', r: 'rect', o: 'ellipse', t: 'text', n: 'note', m: 'pin' };
+const KEYS = { v: 'select', h: 'hand', p: 'draw', l: 'line', a: 'arrow', r: 'rect', o: 'ellipse', d: 'diamond', t: 'text', n: 'note', m: 'pin' };
 const DEF = {
   text: { w: 240, h: 28, text: '' },
   note: { w: 200, h: 200, text: '', color: '#ffcc00' },
@@ -24,6 +24,7 @@ const DEF = {
   timeline: { w: 560, h: 170, title: 'Timeline', events: [{ date: '2026-01-01', label: 'Start' }, { date: '2026-06-01', label: 'Milestone' }] },
   stat: { w: 200, h: 112, label: 'Metric', value: '0', delta: '' },
   callout: { w: 300, h: 64, title: 'Note', text: '' },
+  frame: { w: 640, h: 400, title: 'Frame' },
   kanban: { w: 600, h: 150, columns: [{ title: 'To do', cards: [''] }, { title: 'Doing', cards: [] }, { title: 'Done', cards: [] }] },
 };
 
@@ -34,6 +35,11 @@ const api = n => '/api/board?b=' + encodeURIComponent(n);
 const els = new Map();
 const gX = document.createElement('div'), gY = document.createElement('div'); // alignment guides
 gX.className = gY.className = 'guide';
+const HANDLES = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'];
+const sbox = document.createElement('div'); // box around a multi-selection; its corners scale everything in it
+sbox.className = 'selbox';
+['nw', 'ne', 'se', 'sw'].forEach(c => sbox.append(Object.assign(document.createElement('div'), { className: 'rz ' + c })));
+const pg = document.head.appendChild(document.createElement('style')); // page size and offset for printing, see printSetup()
 
 const uid = () => Math.random().toString(36).slice(2, 9);
 const r = n => Math.round(n * 10) / 10;
@@ -90,19 +96,28 @@ function listEdit(b, lines, parse) {
 const hl = s => s.replace(/("(?:[^"\\]|\\.)*")(\s*:)?|\b(true|false|null)\b|(-?\b\d+(?:\.\d+)?(?:[eE][+-]?\d+)?\b)|[&<>]/g,
   (m, str, colon, kw, num) => str ? `<span class="${colon ? 'k' : 's'}">${esc(str)}</span>${colon || ''}` : kw ? `<span class="b">${m}</span>` : num ? `<span class="n">${m}</span>` : esc(m));
 
+// The polyline a line is drawn along. An elbow line turns its two ends into a right-angled route.
+function path(i) {
+  const p = i.points;
+  if (!i.elbow || p.length !== 2) return p;
+  const [a, b] = p, mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2;
+  const hz = i.elbow === 'h' || (i.elbow !== 'v' && Math.abs(b[0] - a[0]) >= Math.abs(b[1] - a[1]));
+  return hz ? [a, [mx, a[1]], [mx, b[1]], b] : [a, [a[0], my], [b[0], my], b];
+}
+
 function ptsSVG(i) {
-  const c = esc(i.color || 'currentColor'), sw = +i.width || 2, p = i.points;
+  const c = esc(i.color || 'currentColor'), sw = +i.width || 2, p = path(i), dash = i.dash ? ` stroke-dasharray="${sw * 3} ${sw * 3}"` : '';
   let d = `M${p[0]}`;
   if (i.type === 'draw' && p.length > 2) { // smooth freehand through midpoints
     for (let k = 1; k < p.length - 1; k++) d += `Q${p[k]} ${(p[k][0] + p[k + 1][0]) / 2},${(p[k][1] + p[k + 1][1]) / 2}`;
     d += `L${p.at(-1)}`;
   } else d += p.slice(1).map(q => `L${q}`).join('');
-  let head = '';
-  if (i.arrow && p.length > 1) {
-    const [x2, y2] = p.at(-1), [x1, y1] = p.at(-2), t = Math.atan2(y2 - y1, x2 - x1), L = 8 + sw * 2;
-    head = `<path d="M${x2 - L * Math.cos(t - .45)},${y2 - L * Math.sin(t - .45)}L${x2},${y2}L${x2 - L * Math.cos(t + .45)},${y2 - L * Math.sin(t + .45)}" stroke="${c}" stroke-width="${sw}"/>`;
-  }
-  return `<svg width="${i.w || 1}" height="${i.h || 1}"><path class="hit" d="${d}"/><path d="${d}" stroke="${c}" stroke-width="${sw}"/>${head}</svg>`;
+  const head = P => { // arrowhead on P[0], pointing away from the nearest point that differs from it
+    const [x2, y2] = P[0], [x1, y1] = P.find(q => q[0] !== x2 || q[1] !== y2) || P[0], t = Math.atan2(y2 - y1, x2 - x1), L = 8 + sw * 2;
+    return `<path d="M${x2 - L * Math.cos(t - .45)},${y2 - L * Math.sin(t - .45)}L${x2},${y2}L${x2 - L * Math.cos(t + .45)},${y2 - L * Math.sin(t + .45)}" stroke="${c}" stroke-width="${sw}"/>`;
+  };
+  const heads = i.arrow && p.length > 1 ? head([...p].reverse()) + (i.arrow === 'both' ? head(p) : '') : '';
+  return `<svg width="${i.w || 1}" height="${i.h || 1}"><path class="hit" d="${d}"/><path d="${d}" stroke="${c}" stroke-width="${sw}"${dash}/>${heads}</svg>`;
 }
 
 function chartSVG(i) {
@@ -136,14 +151,17 @@ const R = {
   note(i, b, ed) { b.style.cssText = tstyle(i) + `background:color-mix(in srgb, ${i.color || '#ffcc00'} 30%, var(--card))`; b.append(bind(i, 'text', 'txt', ed)); },
   shape(i, b, ed, e) {
     const c = i.color || 'var(--ink)';
-    if (i.shape === 'ellipse') e.classList.add('ellipse');
-    b.style.cssText = tstyle(i) + `border-color:${c};` + (i.fill ? `background:color-mix(in srgb, ${c} 16%, transparent)` : '');
+    const tint = i.fill ? `color-mix(in srgb, ${c} 16%, transparent)` : '';
+    if (i.shape && i.shape !== 'rect') e.classList.add(i.shape);
+    b.style.cssText = tstyle(i) + `border-color:${c};` + (i.dash ? 'border-style:dashed;' : '') + (tint ? `background:${tint}` : '');
+    if (i.shape === 'diamond') // a div cannot have a diamond border, so the outline is an SVG behind the text
+      b.innerHTML = `<svg class="dia" viewBox="0 0 100 100" preserveAspectRatio="none"><polygon points="50,1 99,50 50,99 1,50" style="stroke:${esc(c)};fill:${esc(tint) || 'none'}"${i.dash ? ' stroke-dasharray="6 5"' : ''}/></svg>`;
     b.append(bind(i, 'text', 'txt', ed));
   },
   line(i, b, ed) {
     b.innerHTML = ptsSVG(i);
     if (!ed && !i.label) return;
-    const p = i.points, a = p[Math.floor((p.length - 1) / 2)], c = p[Math.ceil((p.length - 1) / 2)], l = bind(i, 'label', 'lbl', ed);
+    const p = path(i), a = p[Math.floor((p.length - 1) / 2)], c = p[Math.ceil((p.length - 1) / 2)], l = bind(i, 'label', 'lbl', ed);
     l.style.cssText = `left:${(a[0] + c[0]) / 2}px;top:${(a[1] + c[1]) / 2}px`; // label sits on the middle of the line
     b.append(l);
   },
@@ -230,6 +248,7 @@ const R = {
     });
     b.append(tl);
   },
+  frame(i, b, ed) { b.style.cssText = `border-color:${i.color || 'var(--sub)'}`; b.append(bind(i, 'title', 'title', ed)); },
   stat(i, b, ed) {
     const v = bind(i, 'value', 'value', ed), d = bind(i, 'delta', 'delta', ed);
     if (i.color) v.style.color = i.color;
@@ -308,14 +327,15 @@ function refresh(i) {
     const q = i.points[end ? i.points.length - 1 : 0], d = h('div', { className: 'ep', style: `left:${q[0]}px;top:${q[1]}px` });
     d.dataset.end = end; e.append(d);
   });
-  else e.append(h('div', { className: 'rz' }));
+  else for (const d of i.type === 'pin' ? ['se'] : AUTO.has(i.type) ? ['e', 'se', 'w'] : HANDLES) e.append(h('div', { className: 'rz ' + d }));
+  if (i.href && i.type !== 'link' && i.type !== 'embed') e.append(h('button', { className: 'go', textContent: '↗', title: i.href, ariaLabel: 'Open ' + i.href, onclick: () => follow(i.href) }));
   els.set(i.id, e);
   old ? old.replaceWith(e) : world.append(e);
   place(i);
 }
 
 function render() {
-  world.replaceChildren(marq, gX, gY);
+  world.replaceChildren(marq, gX, gY, sbox);
   els.clear();
   board.items.forEach(refresh);
   for (const l of board.items) if (l.type === 'line' && (l.from || l.to) && route(l)) refresh(l); // real heights are known only now
@@ -341,6 +361,43 @@ function expand() { // selecting one member of a group selects the whole group
 function group() { const S = selected(); if (S.length < 2) return; const g = uid(); S.forEach(i => i.group = g); commit(); syncUI(); }
 function ungroup() { selected().forEach(i => delete i.group); commit(); syncUI(); }
 
+// A frame carries whatever lies fully inside it.
+function carried(S) {
+  const out = new Set(S);
+  for (const f of S) if (f.type === 'frame') {
+    const F = box(f);
+    for (const i of board.items) {
+      const b = box(i);
+      if (!i.locked && b.x >= F.x && b.y >= F.y && b.x + b.w <= F.x + F.w && b.y + b.h <= F.y + F.h) out.add(i);
+    }
+  }
+  return [...out];
+}
+
+function align(how) {
+  const S = selected().filter(i => !i.locked && !(i.type === 'line' && (i.from || i.to))); // attached lines follow their items
+  if (S.length < 2) return;
+  const B = bounds(S);
+  if (how === 'dh' || how === 'dv') { // equal gaps between the outermost two
+    const ax = how === 'dh' ? 'x' : 'y', sz = how === 'dh' ? 'w' : 'h', T = [...S].sort((a, b) => a[ax] - b[ax]);
+    const gap = (B[sz] - T.reduce((n, i) => n + box(i)[sz], 0)) / (T.length - 1);
+    let at = B[ax];
+    for (const i of T) { i[ax] = r(at); at += box(i)[sz] + gap; }
+  } else for (const i of S) {
+    const b = box(i);
+    if (how === 'l') i.x = B.x; else if (how === 'c') i.x = r(B.x + (B.w - b.w) / 2); else if (how === 'r') i.x = r(B.x + B.w - b.w);
+    else if (how === 't') i.y = B.y; else if (how === 'm') i.y = r(B.y + (B.h - b.h) / 2); else i.y = r(B.y + B.h - b.h);
+  }
+  S.forEach(place); relink(new Set(S.map(i => i.id))); commit(); syncUI();
+}
+
+function selBox() {
+  const S = selected().filter(i => !i.locked);
+  if (S.length < 2 || editing) return void (sbox.style.display = 'none');
+  const b = bounds(S);
+  sbox.style.cssText = `display:block;left:${b.x - 6}px;top:${b.y - 6}px;width:${b.w + 12}px;height:${b.h + 12}px`;
+}
+
 function guides(x, y) {
   gX.style.cssText = x == null ? '' : `display:block;left:${x}px;top:${-view.y / view.z}px;height:${innerHeight / view.z}px;width:${1 / view.z}px`;
   gY.style.cssText = y == null ? '' : `display:block;top:${y}px;left:${-view.x / view.z}px;width:${innerWidth / view.z}px;height:${1 / view.z}px`;
@@ -361,10 +418,10 @@ function snap(b, skip) {
 }
 
 function nudge(dx, dy) {
-  const S = selected().filter(i => !i.locked);
+  const S = carried(selected().filter(i => !i.locked));
   for (const i of S) { i.x = r(i.x + dx); i.y = r(i.y + dy); place(i); }
   relink(new Set(S.map(i => i.id)));
-  dirty();
+  selBox(); dirty();
 }
 
 // Zoom out (never past 100%) until the selection, or the whole board, is on screen.
@@ -380,7 +437,7 @@ function fit() {
 function edge(i, t) {
   const b = box(i), cx = b.x + b.w / 2, cy = b.y + b.h / 2, dx = t[0] - cx, dy = t[1] - cy, hw = b.w / 2 + 6, hh = b.h / 2 + 6;
   if (!dx && !dy) return [cx, cy];
-  const k = i.type === 'pin' || i.shape === 'ellipse' ? 1 / Math.hypot(dx / hw, dy / hh) : Math.min(hw / Math.abs(dx || 1e-9), hh / Math.abs(dy || 1e-9));
+  const k = i.type === 'pin' || i.shape === 'ellipse' ? 1 / Math.hypot(dx / hw, dy / hh) : i.shape === 'diamond' ? 1 / (Math.abs(dx) / hw + Math.abs(dy) / hh) : Math.min(hw / Math.abs(dx || 1e-9), hh / Math.abs(dy || 1e-9));
   return [r(cx + dx * k), r(cy + dy * k)];
 }
 
@@ -392,8 +449,16 @@ function route(l) {
   const P = l.points.map(q => [q[0] + l.x, q[1] + l.y]);
   if (P.length < 2) P.push([...P[0]]);
   const n = P.length;
-  if (a) P[0] = edge(a, n > 2 || !b ? P[1] : mid(b));
-  if (b) P[n - 1] = edge(b, n > 2 || !a ? P[n - 2] : mid(a));
+  if (l.elbow && a && b && n === 2) { // an elbow leaves and enters through the middle of the sides that face each other
+    const A = box(a), B = box(b), ca = mid(a), cb = mid(b), g = 6;
+    const hz = Math.max(B.x - A.x - A.w, A.x - B.x - B.w) >= Math.max(B.y - A.y - A.h, A.y - B.y - B.h);
+    l.elbow = hz ? 'h' : 'v'; // remembered so the drawing turns the same way the ends were placed
+    P[0] = hz ? [ca[0] < cb[0] ? A.x + A.w + g : A.x - g, ca[1]] : [ca[0], ca[1] < cb[1] ? A.y + A.h + g : A.y - g];
+    P[1] = hz ? [ca[0] < cb[0] ? B.x - g : B.x + B.w + g, cb[1]] : [cb[0], ca[1] < cb[1] ? B.y - g : B.y + B.h + g];
+  } else {
+    if (a) P[0] = edge(a, n > 2 || !b ? P[1] : mid(b));
+    if (b) P[n - 1] = edge(b, n > 2 || !a ? P[n - 2] : mid(a));
+  }
   l.x = 0; l.y = 0; l.points = P;
   norm(l);
   return true;
@@ -414,6 +479,7 @@ function setEnd(l, end, p, e) {
     .find(x => x && x.dataset.id !== l.id && x.dataset.id !== other && !isPts(byId(x.dataset.id) || l));
   if (hit) l[key] = hit.dataset.id; else delete l[key];
   mark(hit || null);
+  if (l.elbow) l.elbow = true; // a dragged end picks its own direction again
   if (!route(l)) norm(l);
   refresh(l);
 }
@@ -517,7 +583,7 @@ function stopEdit() {
 function apply(fn) { selected().forEach(i => { fn(i); refresh(i); }); commit(); syncUI(); }
 function del() { if (!sel.size) return; board.items = board.items.filter(i => !sel.has(i.id) || i.locked); sel.clear(); render(); commit(); } // locked items must be unlocked first
 // Add copies of items, shifted by dx/dy. Connectors between copied items stay connected; others are detached.
-function insert(items, dx, dy) {
+function insert(items, dx, dy, quiet) {
   if (!items.length) return;
   const ids = new Map(items.map(i => [i.id, uid()])), groups = new Map();
   const copies = items.map(i => {
@@ -526,7 +592,7 @@ function insert(items, dx, dy) {
     if (c.group) { if (!groups.has(c.group)) groups.set(c.group, uid()); c.group = groups.get(c.group); } // copies form their own group
     return c;
   });
-  board.items.push(...copies); sel = new Set(copies.map(i => i.id)); render(); commit();
+  board.items.push(...copies); sel = new Set(copies.map(i => i.id)); render(); if (!quiet) commit();
 }
 const dup = () => insert(selected(), 24, 24);
 
@@ -541,6 +607,19 @@ function reorder(front) {
   const S = selected(), rest = board.items.filter(i => !sel.has(i.id));
   board.items = front ? [...rest, ...S] : [...S, ...rest];
   render(); commit();
+}
+// An item's `href` is a web address, or "#board" / "#board/item-id" to jump inside Slate.
+function follow(u) {
+  if (isHttp(u)) return void open(u, '_blank', 'noopener');
+  const [b, id] = u.replace(/^#/, '').split('/');
+  pendingFocus = id || null;
+  !b || b === name ? showPending() : go(b);
+}
+async function editLink(i) {
+  let u = await ask('Link: a web address, or #board (or #board/item-id) to jump there. Leave empty to remove', i.href || '', 'Save');
+  if ($('#ask').returnValue !== 'ok') return;
+  if (u && !u.startsWith('#') && !isHttp(u)) u = 'https://' + u;
+  apply(x => { if (u) x.href = u; else delete x.href; });
 }
 function setTool(t) { tool = t; syncUI(); }
 
@@ -565,9 +644,15 @@ function syncUI() {
       btn('I', 'Italic', i => i.italic = !i.italic, f.italic);
       btn({ left: '⇤', center: '↔', right: '⇥' }[f.align || 'left'], 'Alignment', i => i.align = { left: 'center', center: 'right', right: 'left' }[i.align || 'left']);
     }
+    const flip = (k, ok) => i => { if (!ok(i)) return; if (i[k]) delete i[k]; else i[k] = true; };
+    const stroked = i => isPts(i) || i.type === 'shape';
     if (has(i => i.type === 'shape')) btn('Fill', 'Fill shape', i => { if (i.type === 'shape') i.fill = !i.fill; }, f.fill);
     if (has(isPts)) { sep(); btn({ 2: 'Thin', 4: 'Medium', 8: 'Thick' }[f.width || 2] || 'Thin', 'Stroke width', i => { if (isPts(i)) i.width = { 2: 4, 4: 8, 8: 2 }[i.width || 2] || 2; }); }
-    if (has(i => i.type === 'line')) btn('Arrow', 'Arrowhead', i => { if (i.type === 'line') i.arrow = !i.arrow; }, f.arrow);
+    if (has(stroked)) btn('Dashed', 'Dashed stroke', flip('dash', stroked), f.dash);
+    if (has(i => i.type === 'line')) {
+      btn(f.arrow === 'both' ? 'Arrow ↔' : 'Arrow →', 'Arrowhead: none, at the end, at both ends', i => { if (i.type !== 'line') return; if (!i.arrow) i.arrow = true; else if (i.arrow === 'both') delete i.arrow; else i.arrow = 'both'; }, f.arrow);
+      btn('Elbow', 'Right-angled route instead of a straight line', i => { if (i.type !== 'line') return; if (i.elbow) delete i.elbow; else i.elbow = true; route(i); }, f.elbow);
+    }
     if (S.length === 1) {
       if (f.type === 'chart') { sep(); ['bar', 'line', 'pie'].forEach(t => btn(t[0].toUpperCase() + t.slice(1), t + ' chart', i => i.chart = t, f.chart === t)); }
       if (f.type === 'table') {
@@ -580,6 +665,8 @@ function syncUI() {
       if (f.type === 'link' || f.type === 'embed') { sep(); btn(f.type === 'link' ? 'Embed' : 'As link', 'Switch between link card and embed', i => { i.type = i.type === 'link' ? 'embed' : 'link'; i.w = DEF[i.type].w; i.h = DEF[i.type].h; }); }
     }
     sep();
+    if (S.length === 1) btn('Link', 'Link this item to a web address or to another board', () => editLink(f), f.href, true);
+    if (S.length > 1) { const a = h('button', { textContent: 'Align', title: 'Align or distribute the selected items' }); a.popoverTargetElement = $('#alignMenu'); bar.append(a); }
     if (S.length > 1 && !(f.group && S.every(i => i.group === f.group))) btn('Group', 'Group (⌘G): move as one. Alt-click picks a single item inside', group, false, true);
     if (has(i => i.group)) btn('Ungroup', 'Ungroup (⇧⌘G)', ungroup, false, true);
     btn('Lock', 'Lock in place: cannot be moved, edited or deleted until unlocked', i => { i.locked = true; });
@@ -588,6 +675,7 @@ function syncUI() {
     btn('Duplicate', 'Duplicate (⌘D). ⌘C / ⌘V also work, across boards', dup, false, true);
     btn('Delete', 'Delete (⌫)', del, false, true);
   }
+  selBox();
   renderPanel();
 }
 
@@ -627,15 +715,20 @@ stage.addEventListener('pointerdown', e => {
   if (e.button === 1 || space || tool === 'hand') { drag = { k: 'pan', sx: e.clientX, sy: e.clientY, vx: view.x, vy: view.y }; return; }
 
   if (tool === 'select') {
+    if (e.target.parentNode === sbox) { // a corner of the multi-selection box
+      const S = selected().filter(i => !i.locked);
+      drag = { k: 'scale', p, hd: e.target.classList[1], b: bounds(S), o: new Map(S.map(i => [i.id, structuredClone(i)])) };
+      return;
+    }
     if (it && e.target.classList.contains('ep')) { sel = new Set([id]); drag = { k: 'ep', it, end: +e.target.dataset.end }; return syncUI(); }
-    if (it && e.target.classList.contains('rz')) { drag = { k: 'rz', it, p, o: structuredClone(it) }; return; }
+    if (it && e.target.classList.contains('rz')) { drag = { k: 'rz', it, p, o: structuredClone(it), hd: e.target.classList[1] }; return; }
     if (it && !it.locked) {
       if (dbl) return startEdit(it);
       const ids = e.altKey ? [id] : members(it), on = sel.has(id); // Alt-click reaches one item inside a group
       if (e.shiftKey) ids.forEach(x => on ? sel.delete(x) : sel.add(x));
-      else if (!on || e.altKey) sel = new Set(ids);
-      const S = selected().filter(i => !i.locked);
-      drag = { k: 'move', p, o: new Map(S.map(i => [i.id, { x: i.x, y: i.y }])), b: bounds(S) };
+      else if (!on) sel = new Set(ids);
+      const S = carried(selected().filter(i => !i.locked));
+      drag = { k: 'move', p, o: new Map(S.map(i => [i.id, { x: i.x, y: i.y }])), b: bounds(S), alt: e.altKey && id };
     } else {
       if (dbl && !it) return startEdit(add({ type: 'text', x: p.x, y: p.y - 12 }));
       if (!e.shiftKey) sel.clear();
@@ -666,9 +759,9 @@ stage.addEventListener('pointerdown', e => {
     tool = 'pin'; sel.clear();
     return syncUI();
   }
-  const type = tool === 'rect' || tool === 'ellipse' ? 'shape' : tool;
+  const type = ['rect', 'ellipse', 'diamond'].includes(tool) ? 'shape' : tool;
   const i = { ...structuredClone(DEF[type]), id: uid(), type, x: p.x, y: p.y, w: 0, h: 0 };
-  if (tool === 'ellipse') i.shape = 'ellipse';
+  if (type === 'shape') i.shape = tool;
   board.items.push(i); refresh(i);
   drag = { k: 'new', it: i, p };
 });
@@ -679,6 +772,12 @@ stage.addEventListener('pointermove', e => {
   if (d.k === 'pan') { view.x = d.vx + e.clientX - d.sx; view.y = d.vy + e.clientY - d.sy; return applyView(); }
   const p = toWorld(e), dx = p.x - (d.p?.x || 0), dy = p.y - (d.p?.y || 0);
   if (d.k === 'move') {
+    if (d.alt && !d.moved) { // Alt-drag leaves the originals where they are and drags copies
+      if (Math.hypot(dx, dy) * view.z < 4) return;
+      insert([...d.o.keys()].map(byId), 0, 0, true);
+      const S = selected();
+      d.o = new Map(S.map(i => [i.id, { x: i.x, y: i.y }])); d.b = bounds(S);
+    }
     d.moved = true;
     const ids = new Set(d.o.keys());
     let sx = 0, sy = 0;
@@ -690,18 +789,34 @@ stage.addEventListener('pointermove', e => {
     }
     relink(ids);
   } else if (d.k === 'rz') {
-    const i = d.it, o = d.o, min = isPts(i) ? 1 : 24;
+    const i = d.it, o = d.o, min = isPts(i) ? 1 : 24, H = d.hd;
     d.moved = true;
-    i.w = r(Math.max(min, o.w + dx)); i.h = r(Math.max(min, o.h + dy));
+    i.w = r(Math.max(min, H.includes('e') ? o.w + dx : H.includes('w') ? o.w - dx : o.w));
+    i.h = r(Math.max(min, H.includes('s') ? o.h + dy : H.includes('n') ? o.h - dy : o.h));
+    if (H.includes('w')) i.x = r(o.x + o.w - i.w); // the opposite side stays where it was
+    if (H.includes('n')) i.y = r(o.y + o.h - i.h);
     if (isPts(i)) i.points = o.points.map(([x, y]) => [r(x * i.w / (o.w || 1)), r(y * i.h / (o.h || 1))]);
     LIVE.has(i.type) ? place(i) : refresh(i);
     relink(new Set([i.id]));
+  } else if (d.k === 'scale') {
+    // ponytail: positions and sizes scale, text size does not. Scale `size` too if that is ever wanted.
+    const B = d.b, H = d.hd, w = Math.max(24, H.includes('e') ? B.w + dx : B.w - dx), hh = Math.max(24, H.includes('s') ? B.h + dy : B.h - dy);
+    const x = H.includes('w') ? B.x + B.w - w : B.x, y = H.includes('n') ? B.y + B.h - hh : B.y, kx = w / (B.w || 1), ky = hh / (B.h || 1);
+    d.moved = true;
+    for (const [id, o] of d.o) {
+      const i = byId(id), min = isPts(i) ? 1 : 8;
+      i.x = r(x + (o.x - B.x) * kx); i.y = r(y + (o.y - B.y) * ky);
+      i.w = r(Math.max(min, o.w * kx)); i.h = r(Math.max(min, o.h * ky));
+      if (isPts(i)) i.points = o.points.map(([px, py]) => [r(px * i.w / (o.w || 1)), r(py * i.h / (o.h || 1))]);
+      LIVE.has(i.type) ? place(i) : refresh(i);
+    }
+    relink(new Set(d.o.keys()));
   } else if (d.k === 'marq') {
     const x = Math.min(p.x, d.p.x), y = Math.min(p.y, d.p.y), w = Math.abs(dx), hh = Math.abs(dy);
     marq.style.cssText = `display:block;left:${x}px;top:${y}px;width:${w}px;height:${hh}px`;
     d.moved = true;
     sel = new Set(d.base);
-    for (const i of board.items) if (!i.locked && i.x <= x + w && i.x + i.w >= x && i.y <= y + hh && i.y + Math.max(i.h, els.get(i.id)?.offsetHeight || 0) >= y) sel.add(i.id);
+    for (const i of board.items) if (!i.locked && (i.type !== 'frame' || (i.x >= x && i.y >= y && i.x + i.w <= x + w && i.y + i.h <= y + hh)) && i.x <= x + w && i.x + i.w >= x && i.y <= y + hh && i.y + Math.max(i.h, els.get(i.id)?.offsetHeight || 0) >= y) sel.add(i.id);
     expand();
     for (const [id, el] of els) el.classList.toggle('sel', sel.has(id));
   } else if (d.k === 'draw') {
@@ -715,6 +830,7 @@ stage.addEventListener('pointermove', e => {
     i.x = Math.min(p.x, d.p.x); i.y = Math.min(p.y, d.p.y); i.w = Math.abs(dx); i.h = Math.abs(dy);
     place(i);
   }
+  selBox();
 });
 
 function endDrag() {
@@ -724,6 +840,7 @@ function endDrag() {
   guides();
   if (!d) return;
   if (d.k === 'marq' && !d.moved && d.hit) sel = new Set([d.hit]);
+  if (d.k === 'move' && !d.moved && d.alt) sel = new Set([d.alt]); // Alt-click picks one item out of its group
   const drop = i => { board.items = board.items.filter(x => x !== i); els.get(i.id).remove(); els.delete(i.id); };
   if (d.k === 'draw') {
     const i = d.it;
@@ -778,6 +895,7 @@ addEventListener('keydown', e => {
   else if (m && k === 'a') { e.preventDefault(); sel = new Set(board.items.filter(i => !i.locked).map(i => i.id)); syncUI(); }
   else if (m && k === 'g') { e.preventDefault(); e.shiftKey ? ungroup() : group(); }
   else if (m && (k === 'k' || k === 'f')) { e.preventDefault(); openFind(); }
+  else if (m && k === 'p') { e.preventDefault(); exportPDF(); }
   else if (k.startsWith('arrow') && sel.size) {
     e.preventDefault();
     const s = e.shiftKey ? 10 : 1;
@@ -866,6 +984,7 @@ $('#ins').onclick = async e => {
   if (!kind) return;
   $('#ins').hidePopover();
   if (kind === 'media') return $('#file').click();
+  if (kind === 'frame') { add(centered(kind)); return reorder(false); } // frames sit behind what they hold
   if (kind !== 'link') return add(centered(kind));
   const u = await ask('Paste a link — a page, YouTube, Figma, an image or a video');
   if (u) { const c = centered('link'); addURL(isHttp(u) ? u : 'https://' + u, { x: c.x, y: c.y }); }
@@ -914,6 +1033,23 @@ $('#findInput').onkeydown = e => { if (e.key === 'Enter') $('#findList button')?
 $('#find').onclick = e => { if (e.target === $('#find')) $('#find').close(); }; // click outside closes
 $('#findBtn').onclick = openFind;
 $('#fitBtn').onclick = fit;
+$('#alignMenu').onclick = e => { const k = e.target.dataset.al; if (k) { $('#alignMenu').hidePopover(); align(k); } };
+
+// ---------- PDF ----------
+
+// Printing gives a vector PDF. The page is sized to the selection (or the whole board) and everything else is hidden; see @media print.
+function printSetup() {
+  if (editing) stopEdit();
+  const S = sel.size ? carried(selected()) : board.items;
+  if (!S.length) return false;
+  const b = bounds(S), pad = 32, keep = new Set(S.map(i => i.id));
+  for (const [id, e] of els) e.classList.toggle('noprint', !keep.has(id));
+  pg.textContent = `@page{size:${Math.ceil(b.w + pad * 2)}px ${Math.ceil(b.h + pad * 2)}px;margin:0}@media print{#world{transform:translate(${pad - b.x}px,${pad - b.y}px)!important}}`;
+  return true;
+}
+const exportPDF = () => { if (printSetup()) print(); };
+addEventListener('beforeprint', printSetup); // the browser's own Print command gets the same layout
+$('#pdfBtn').onclick = exportPDF;
 
 // ---------- boards ----------
 
@@ -993,4 +1129,4 @@ function listen() {
   es.onerror = () => { es.close(); setTimeout(listen, 2000); }; // don't rely on the browser's own retry: it stalls when the server is down
 }
 listen();
-openBoard();
+openBoard().then(() => { if (new URLSearchParams(location.search).has('print')) printSetup(); }); // ?print lays the page out for a headless print-to-pdf

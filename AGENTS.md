@@ -32,18 +32,19 @@ Pixels on an infinite canvas, `x` right and `y` down, any range including negati
 
 ## Item types
 
-Common fields on every item: `id`, `type`, `x`, `y`, `w`, `h`, and optional `color` (any CSS color; omit for the default ink, which adapts to dark mode), `group` and `locked`.
+Common fields on every item: `id`, `type`, `x`, `y`, `w`, `h`, and optional `color` (any CSS color; omit for the default ink, which adapts to dark mode), `group`, `locked` and `href`.
 
 - `group`: any string. Items sharing the same `group` are selected and moved together in the UI. Use it to tie a screenshot to its pins and notes.
+- `href`: turns the item into a link, shown as a small ↗ badge on it. Either a web address, or `"#board"` / `"#board/item-id"` to jump to another board (and centre on an item there). Use it to connect an overview board to detail boards.
 - `locked`: true pins an item in place in the UI (no move, edit or delete until the user unlocks it). Good for a background screenshot. Don't change or remove items the user has locked unless asked.
 
 | type | fields | default size | notes |
 |---|---|---|---|
 | `text` | `text` | 240×28 | Height grows with content. `color` is the text color. |
 | `note` | `text` | 200×200 | Sticky note. `color` tints the paper (default `#ffcc00`). |
-| `shape` | `shape`: `"rect"` \| `"ellipse"`, `text`, `fill`: bool | 160×100 | `color` is the border; `fill` adds a light tint of it. Text is centered by default. |
-| `line` | `points`: `[[x,y],…]`, `arrow`: bool, `width`: 2 \| 4 \| 8, `label`, `from`, `to` | from points | Points are **relative to the item's `x`,`y`**. Arrowhead sits on the last point. More than two points makes a polyline. `label` is short text shown on the middle of the line. Leave out `w`/`h`. `from` / `to` take the `id` of another item and attach that end to it: Slate aims the end at the item's edge and keeps it there when the item moves, so with both set you can omit `points`. |
-| `draw` | `points`, `width` | from points | Freehand stroke, same point rules as `line`, rendered smoothed. |
+| `shape` | `shape`: `"rect"` \| `"ellipse"` \| `"diamond"`, `text`, `fill`: bool, `dash`: bool | 160×100 | `color` is the border; `fill` adds a light tint of it; `dash` makes the border dashed. Text is centered by default. In a flowchart use `diamond` for decisions and make it about 170×110 so the text fits. |
+| `line` | `points`: `[[x,y],…]`, `arrow`: true \| `"both"`, `width`: 2 \| 4 \| 8, `dash`: bool, `elbow`: bool, `label`, `from`, `to` | from points | Points are **relative to the item's `x`,`y`**. Arrowhead sits on the last point. More than two points makes a polyline. `label` is short text shown on the middle of the line. Leave out `w`/`h`. `from` / `to` take the `id` of another item and attach that end to it: Slate aims the end at the item's edge and keeps it there when the item moves, so with both set you can omit `points`. `arrow`: `"both"` puts a head on each end. `elbow`: true draws a two-point line as a right-angled route, the usual look for flowcharts; with `from` and `to` set it leaves and enters through the middle of the facing sides (Slate may rewrite the value to `"h"` or `"v"`, the direction of the first leg). |
+| `draw` | `points`, `width`, `dash` | from points | Freehand stroke, same point rules as `line`, rendered smoothed. |
 | `code` | `title`, `text` | 340×60 | Monospace block for code, endpoints and JSON responses, with syntax colouring and a copy button. Set `collapsed`: true to show only the first 6 lines of a long block. `title` is an optional header such as `"GET /api/users → 200"`. `text` is a string, or put a raw JSON object/array there and Slate pretty-prints it. Height grows. |
 | `pin` | `text` | 28×28 | Round numbered marker for calling out spots on a screenshot. `text` is the number or letter; `color` fills it (default red). Pair each pin with a `text`/`note`/`code` item that starts with the same number. |
 | `image` | `src`, `alt` | 320×220 | `src` is `/assets/…` or an http(s) URL. Set `h` to match the aspect ratio. |
@@ -54,6 +55,7 @@ Common fields on every item: `id`, `type`, `x`, `y`, `w`, `h`, and optional `col
 | `tasks` | `title`, `tasks`: `[{"text","done","due"}]` | 260×90 | `due` is optional `YYYY-MM-DD`; overdue open tasks show red. Height grows. |
 | `chart` | `chart`: `"bar"` \| `"line"` \| `"pie"`, `title`, `data`: `[{"label","value"}]` | 340×240 | One series. `color` sets the bar/line color; pie slices use a built-in palette. |
 | `timeline` | `title`, `events`: `[{"date","label"}]` | 560×170 | `date` as `YYYY-MM-DD` positions events proportionally; non-date strings are spaced evenly. Give ~140 px of width per event. |
+| `frame` | `title` | 640×400 | A named, dashed region for a section of the board. Items lying fully inside its rectangle move with it in the UI, and it can be exported on its own. Put it **before** its contents in `items` so it draws behind them, and leave ~40 px of padding around the contents. To add something "to a frame", place it inside the frame's rectangle; there is no parent field. |
 | `stat` | `label`, `value`, `delta` | 200×112 | Metric card: small label, big value, optional change such as `"+12%"`. `value` and `delta` are strings. A `delta` starting with `+` shows green, with `-` red. `color` tints the value. |
 | `callout` | `title`, `text` | 300×64 | Boxed remark with a coloured stripe on the left. `color` sets the stripe and tint: blue for info (default), orange for a warning, red for a risk, green for a decision. Height grows. |
 | `kanban` | `columns`: `[{"title","cards":["text",…]}]` | 600×150 | Columns of plain-text cards; the user drags cards between columns. Give ~200 px of width per column. Height grows. |
