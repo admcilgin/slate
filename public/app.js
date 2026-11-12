@@ -686,11 +686,18 @@ function renderBoards(list) {
 }
 
 addEventListener('hashchange', openBoard);
-new EventSource('/api/events').onmessage = async e => {
+async function onChange(changed) {
   if (!name) return;
   const list = await boards();
   if (!list.includes(name)) return openBoard(); // the open board was deleted elsewhere
   renderBoards(list);
-  if (e.data === name) load(true);
-};
+  if (changed === name) load(true);
+}
+function listen() {
+  const es = new EventSource('/api/events');
+  es.onmessage = e => onChange(e.data);
+  es.onopen = () => onChange(name); // (re)connected, e.g. after a server restart: catch up on anything missed
+  es.onerror = () => { es.close(); setTimeout(listen, 2000); }; // don't rely on the browser's own retry: it stalls when the server is down
+}
+listen();
 openBoard();

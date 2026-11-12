@@ -9,6 +9,15 @@ Slate is a local whiteboard. Run it with `node server.js` and open http://localh
 - Names: letters, digits, spaces, `-` and `_`, up to 60 characters. Other files are ignored.
 - If the user doesn't say which board, ask or use the one they most recently changed (`ls -t data/boards`). Don't delete or rename board files unless asked.
 
+## Two ways in
+
+- **Inside this folder:** edit `data/boards/<name>.json` directly, following the rules below.
+- **From anywhere else:** use the CLI, `node <slate>/cli.js`. It needs no browser and no running server, validates what you write, and keeps the file format right. Run it with no arguments for the command list: `status`, `boards`, `show`, `new`, `add`, `set`, `rm`, `rm-board`, `asset`, `start`, `stop`.
+
+A running server records its port in `data/.server.json` (`{port, pid, url}`); `cli.js status` reports it, along with where the boards are. The default is http://localhost:4747, changed with `PORT=`. You only need the server so a human can look at the board.
+
+`node cli.js install` installs a Claude Code skill (`skills/slate/SKILL.md`) into `~/.claude/skills/slate`, so agents in other projects know Slate exists and how to drive it.
+
 ## Rules for writing
 
 - Keep the file valid JSON. Invalid writes are ignored until fixed.
@@ -67,6 +76,8 @@ Links between boards, grouping or frames, connectors that follow shapes, rich te
 
 ## Code map
 
+- `lib.js` — board paths, naming and file format, shared by the server and the CLI.
+- `cli.js` — command-line access to boards for agents and scripts.
 - `server.js` — static files, `GET /api/boards`, `GET/PUT/DELETE /api/board?b=<name>`, `POST /api/upload`, `GET /api/events` (live reload). Listens on 127.0.0.1 only.
 - `public/app.js` — canvas, tools, one renderer per item type in `R`, defaults in `DEF`. Adding a type means one entry in each, plus a row in the table above.
 - `public/style.css`, `public/index.html` — look and chrome.

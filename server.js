@@ -3,29 +3,12 @@ const http = require('http'), fs = require('fs'), path = require('path');
 
 const PORT = process.env.PORT || 4747;
 const PUB = path.join(__dirname, 'public');
-const DATA = path.join(__dirname, 'data');
-const ASSETS = path.join(DATA, 'assets');
-const BOARDS = path.join(DATA, 'boards');
-const NAME = /^[\p{L}\p{N}_][\p{L}\p{N}_ -]{0,59}$/u; // board name = file name, so keep it tame
+const { ASSETS, BOARDS, RUN, NAME, EMPTY, file, list, format } = require('./lib');
 const MIME = {
   '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json',
   '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.gif': 'image/gif', '.webp': 'image/webp',
   '.svg': 'image/svg+xml', '.avif': 'image/avif', '.mp4': 'video/mp4', '.webm': 'video/webm', '.mov': 'video/quicktime', '.m4v': 'video/mp4',
 };
-
-fs.mkdirSync(ASSETS, { recursive: true });
-fs.mkdirSync(BOARDS, { recursive: true });
-const EMPTY = '{"items":[\n]}\n';
-const file = n => path.join(BOARDS, n + '.json');
-const list = () => fs.readdirSync(BOARDS).filter(f => f.endsWith('.json')).map(f => f.slice(0, -5)).filter(n => NAME.test(n)).sort((a, b) => a.localeCompare(b));
-const legacy = path.join(DATA, 'board.json'); // single-board layout from v0.1
-if (fs.existsSync(legacy) && !fs.existsSync(file('main'))) fs.renameSync(legacy, file('main'));
-if (!list().length) fs.writeFileSync(file('main'), fs.existsSync(path.join(__dirname, 'demo.json')) ? fs.readFileSync(path.join(__dirname, 'demo.json')) : EMPTY); // first run: welcome board
-
-// One item per line: cheap for agents to read, grep and diff.
-const format = ({ items, ...rest }) =>
-  JSON.stringify(rest).slice(0, -1) + (Object.keys(rest).length ? ',' : '') +
-  '"items":[\n' + items.map(i => JSON.stringify(i)).join(',\n') + '\n]}\n';
 
 // Live reload: tell browsers which board someone else (an agent, an editor) changed, created or deleted.
 const lastWritten = new Map(list().map(n => [n, fs.readFileSync(file(n), 'utf8')])), timers = new Map();
@@ -132,4 +115,9 @@ http.createServer(async (req, res) => {
   } catch (e) {
     res.writeHead(400).end(String(e.message || e));
   }
-}).listen(PORT, '127.0.0.1', () => console.log(`Slate → http://localhost:${PORT}`));
+}).listen(PORT, '127.0.0.1', () => {
+  const url = `http://localhost:${PORT}`;
+  fs.writeFileSync(RUN, JSON.stringify({ port: +PORT, pid: process.pid, url })); // lets the CLI and agents find a running server
+  console.log(`Slate → ${url}`);
+});
+for (const sig of ['SIGINT', 'SIGTERM']) process.on(sig, () => { fs.rmSync(RUN, { force: true }); process.exit(); });

@@ -58,6 +58,26 @@ Each board is one file, `data/boards/<name>.json`, with one item per line. An ag
 
 There is no built-in chat and no API key to configure. The agent is whichever one you already use.
 
+### From other projects
+
+Agents working elsewhere on your machine use the CLI. It edits board files directly, so neither the browser nor the server has to be running:
+
+```sh
+node cli.js status                      # where Slate lives, boards, URL if the server is up
+node cli.js show main                   # every item, one per line
+node cli.js add main '{"type":"note","text":"Ship it"}'
+node cli.js set main <id> '{"color":"#34c759"}'
+node cli.js rm main <id>
+```
+
+Run `node cli.js` for the full list. To teach Claude Code about Slate in every project, install the bundled skill once:
+
+```sh
+node cli.js install
+```
+
+After that you can say "put this flow on my Slate board" from any repo.
+
 ## Your data
 
 - Boards live in `data/boards/`, uploaded media in `data/assets/`. Both are git-ignored.
@@ -70,8 +90,9 @@ One person at a time: if you and an agent save within the same quarter-second, t
 
 ## Code
 
-About 1,000 lines, no build step.
+About 1,200 lines, no build step.
 
+- `cli.js` reads and edits boards from the command line; `lib.js` holds what it shares with the server.
 - `server.js` serves the app, reads and writes board files, and pushes live-reload events.
 - `public/app.js` is the canvas. Each item type has one renderer in `R` and its defaults in `DEF`.
 - `demo.json` is the welcome board copied on first run.
