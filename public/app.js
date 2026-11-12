@@ -4,7 +4,7 @@ const stage = $('#stage'), world = $('#world'), marq = $('#marq'), bar = $('#bar
 
 const PAL = ['', '#8e8e93', '#ff3b30', '#ff9500', '#ffcc00', '#34c759', '#007aff', '#af52de'];
 const SERIES = ['#007aff', '#34c759', '#ff9500', '#ff3b30', '#af52de', '#ffcc00', '#8e8e93'];
-const AUTO = new Set(['text', 'tasks', 'table', 'link']);   // height grows with content
+const AUTO = new Set(['text', 'tasks', 'table', 'link', 'code']);   // height grows with content
 const LIVE = new Set(['image', 'video', 'embed']);          // never rebuilt while moving/resizing (would reload media)
 const TEXTY = new Set(['text', 'note', 'shape']);
 const KEYS = { v: 'select', h: 'hand', p: 'draw', l: 'line', a: 'arrow', r: 'rect', o: 'ellipse', t: 'text', n: 'note' };
@@ -13,6 +13,7 @@ const DEF = {
   note: { w: 200, h: 200, text: '', color: '#ffcc00' },
   shape: { w: 160, h: 100, shape: 'rect', text: '', align: 'center' },
   line: {}, draw: {},
+  code: { w: 340, h: 60, title: '', text: '' },
   image: { w: 320, h: 220 }, video: { w: 400, h: 225 }, embed: { w: 480, h: 300 }, link: { w: 300, h: 62 },
   table: { w: 380, h: 110, rows: [['', '', ''], ['', '', ''], ['', '', '']] },
   tasks: { w: 260, h: 90, title: 'Tasks', tasks: [{ text: '', done: false }] },
@@ -47,6 +48,7 @@ function norm(i) {
   i.id ??= uid();
   for (const [k, v] of Object.entries(DEF[i.type] || {})) i[k] ??= structuredClone(v);
   i.x ??= 0; i.y ??= 0;
+  if (i.type === 'code' && typeof i.text !== 'string') i.text = JSON.stringify(i.text, null, 2); // agents may store raw JSON
   if (isPts(i)) {
     if (!Array.isArray(i.points) || !i.points.length) i.points = [[0, 0], [120, 0]];
     const xs = i.points.map(p => p[0]), ys = i.points.map(p => p[1]), mx = Math.min(...xs), my = Math.min(...ys);
@@ -74,6 +76,10 @@ function listEdit(b, lines, parse) {
   ta.oninput = () => { parse(ta.value.split('\n').map(l => l.trim()).filter(Boolean)); dirty(); };
   b.append(ta);
 }
+
+// Light syntax colouring for JSON (and passable for most code): keys, strings, numbers, literals.
+const hl = s => s.replace(/("(?:[^"\\]|\\.)*")(\s*:)?|\b(true|false|null)\b|(-?\b\d+(?:\.\d+)?(?:[eE][+-]?\d+)?\b)|[&<>]/g,
+  (m, str, colon, kw, num) => str ? `<span class="${colon ? 'k' : 's'}">${esc(str)}</span>${colon || ''}` : kw ? `<span class="b">${m}</span>` : num ? `<span class="n">${m}</span>` : esc(m));
 
 function ptsSVG(i) {
   const c = esc(i.color || 'currentColor'), sw = +i.width || 2, p = i.points;
@@ -125,7 +131,20 @@ const R = {
     b.style.cssText = tstyle(i) + `border-color:${c};` + (i.fill ? `background:color-mix(in srgb, ${c} 16%, transparent)` : '');
     b.append(bind(i, 'text', 'txt', ed));
   },
-  line(i, b) { b.innerHTML = ptsSVG(i); },
+  line(i, b, ed) {
+    b.innerHTML = ptsSVG(i);
+    if (!ed && !i.label) return;
+    const p = i.points, a = p[Math.floor((p.length - 1) / 2)], c = p[Math.ceil((p.length - 1) / 2)], l = bind(i, 'label', 'lbl', ed);
+    l.style.cssText = `left:${(a[0] + c[0]) / 2}px;top:${(a[1] + c[1]) / 2}px`; // label sits on the middle of the line
+    b.append(l);
+  },
+  code(i, b, ed) {
+    if (ed || i.title) b.append(bind(i, 'title', 'title', ed));
+    if (!ed) return b.append(h('pre', { className: 'txt', innerHTML: hl(i.text || '') }));
+    const tx = bind(i, 'text', 'txt', ed);
+    tx.onkeydown = ev => { if (ev.key === 'Tab') { ev.preventDefault(); document.execCommand('insertText', false, '  '); } };
+    b.append(tx);
+  },
   draw(i, b) { b.innerHTML = ptsSVG(i); },
   image(i, b) { b.append(h('img', { src: i.src || '', alt: i.alt || '', draggable: false })); },
   video(i, b) { b.append(h('video', { src: i.src || '', controls: true, preload: 'metadata' })); },
@@ -302,11 +321,12 @@ function add(props) {
 }
 
 function startEdit(i) {
-  if (isPts(i) || i.type === 'image') return;
+  if (i.type === 'draw' || i.type === 'image') return;
   editing = i.id; sel = new Set([i.id]);
   LIVE.has(i.type) ? place(i) : refresh(i);
-  const f = els.get(i.id).querySelector('[contenteditable],textarea');
-  if (f) { f.focus(); getSelection().selectAllChildren(f); getSelection().collapseToEnd(); }
+  const f = els.get(i.id).querySelector(i.type === 'code' ? '.txt' : '[contenteditable],textarea');
+  // after the current click finishes: its default action would otherwise move focus to whatever was under the pointer
+  if (f) setTimeout(() => { if (editing !== i.id || !f.isConnected) return; f.focus(); getSelection().selectAllChildren(f); getSelection().collapseToEnd(); });
   syncUI();
 }
 
@@ -314,6 +334,8 @@ function stopEdit() {
   const i = byId(editing);
   editing = null;
   if (i) {
+    if (i.type === 'code') try { i.text = JSON.stringify(JSON.parse(i.text), null, 2); } catch {} // valid JSON gets pretty-printed
+    if (i.type === 'line' && !i.label?.trim()) delete i.label;
     if (i.type === 'text' && !i.text.trim()) { board.items = board.items.filter(x => x !== i); els.get(i.id)?.remove(); els.delete(i.id); sel.delete(i.id); }
     else LIVE.has(i.type) ? place(i) : refresh(i);
   }

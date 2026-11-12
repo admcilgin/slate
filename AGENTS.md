@@ -30,8 +30,9 @@ Common fields on every item: `id`, `type`, `x`, `y`, `w`, `h`, and optional `col
 | `text` | `text` | 240×28 | Height grows with content. `color` is the text color. |
 | `note` | `text` | 200×200 | Sticky note. `color` tints the paper (default `#ffcc00`). |
 | `shape` | `shape`: `"rect"` \| `"ellipse"`, `text`, `fill`: bool | 160×100 | `color` is the border; `fill` adds a light tint of it. Text is centered by default. |
-| `line` | `points`: `[[x,y],…]`, `arrow`: bool, `width`: 2 \| 4 \| 8 | from points | Points are **relative to the item's `x`,`y`**. Arrowhead sits on the last point. More than two points makes a polyline. Leave out `w`/`h`. |
+| `line` | `points`: `[[x,y],…]`, `arrow`: bool, `width`: 2 \| 4 \| 8, `label` | from points | Points are **relative to the item's `x`,`y`**. Arrowhead sits on the last point. More than two points makes a polyline. `label` is short text shown on the middle of the line. Leave out `w`/`h`. |
 | `draw` | `points`, `width` | from points | Freehand stroke, same point rules as `line`, rendered smoothed. |
+| `code` | `title`, `text` | 340×60 | Monospace block for code, endpoints and JSON responses, with syntax colouring. `title` is an optional header such as `"GET /api/users → 200"`. `text` is a string, or put a raw JSON object/array there and Slate pretty-prints it. Height grows. |
 | `image` | `src`, `alt` | 320×220 | `src` is `/assets/…` or an http(s) URL. Set `h` to match the aspect ratio. |
 | `video` | `src` | 400×225 | Local file in `/assets/` or a direct video URL. For YouTube/Vimeo use `embed`. |
 | `embed` | `url` | 480×300 | Iframe. YouTube, Vimeo, Loom and Figma share links are converted to their embed form automatically. Many ordinary sites refuse iframes; use `link` for those. |
@@ -55,6 +56,8 @@ Palette the UI offers (use these to stay consistent): `#8e8e93` gray, `#ff3b30` 
 {"id":"sprint","type":"tasks","x":80,"y":360,"title":"This week","tasks":[{"text":"Ship paywall copy","done":false,"due":"2026-11-20"}]}
 {"id":"mrr","type":"chart","x":360,"y":360,"chart":"line","title":"MRR","data":[{"label":"Sep","value":1200},{"label":"Oct","value":1850}]}
 ```
+
+To annotate a screenshot: place the `image`, then for each callout add a `line` with `arrow` (and a short `label` if useful) from the spot on the image to a `text`, `note` or `code` item beside it holding the detail — the flow, the endpoint, or the response JSON.
 
 To connect two items with an arrow, start the line at the first item's edge and end it at the second's: for a horizontal link from A to B at the same height, `x = A.x + A.w + 8`, `y = A.y + A.h / 2`, `points = [[0,0],[B.x - x - 8, 0]]`. Arrows are not attached to shapes, so move them together.
 

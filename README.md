@@ -25,6 +25,8 @@ Open http://localhost:4747. To use another port: `PORT=5000 node server.js`.
 - Images and videos (drop them on the canvas, paste them, or pick a file)
 - Links and embeds (YouTube, Vimeo, Figma, Loom)
 - Task lists with due dates, plus a panel listing every open task on the board
+- Code and JSON blocks with syntax colouring; valid JSON is pretty-printed
+- Labels on lines and arrows
 - Tables
 - Bar, line and pie charts
 - Timelines
