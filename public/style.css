@@ -35,6 +35,9 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .ep { display: none; position: absolute; width: 12px; height: 12px; margin: -6px; border-radius: 50%; background: var(--card); border: 1.5px solid var(--accent); cursor: crosshair; pointer-events: auto; }
 .item.sel .ep { display: block; }
 .item.line.sel { outline: none; }
+.guide { position: absolute; display: none; background: #ff3b30; z-index: 2; pointer-events: none; }
+.item.locked.sel { outline: 1.5px dashed var(--sub); }
+.item.locked .rz, .item.locked .ep { display: none; }
 .item.target { outline: 2px solid var(--accent); outline-offset: 5px; }
 .pin, .pin .body { border-radius: 50%; }
 .pin .body { display: grid; place-items: center; color: #fff; font-weight: 700; box-shadow: 0 1px 4px rgba(0,0,0,.25); }
@@ -151,6 +154,14 @@ dialog { padding: 18px; width: min(420px, calc(100vw - 32px)); }
 dialog::backdrop { background: rgba(0,0,0,.2); }
 dialog label { display: block; font-weight: 600; margin-bottom: 10px; }
 dialog input { width: 100%; font: inherit; padding: 9px 11px; border-radius: 9px; border: .5px solid var(--line); background: var(--bg); color: var(--ink); }
+#find { margin-top: 90px; padding: 8px; width: min(540px, calc(100vw - 32px)); }
+#find input { border: 0; background: none; font-size: 16px; padding: 8px 10px; outline: 0; }
+#findList { max-height: 50vh; overflow: auto; }
+#findList button { display: flex; width: 100%; gap: 12px; justify-content: space-between; align-items: baseline; text-align: left; padding: 8px 10px; border-radius: 9px; }
+#findList button:hover, #findList button:focus-visible { background: color-mix(in srgb, var(--ink) 8%, transparent); outline: 0; }
+#findList span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#findList small { flex: none; color: var(--sub); }
+#findList p { margin: 0; padding: 8px 10px; color: var(--sub); }
 dialog menu { display: flex; flex-direction: row-reverse; gap: 8px; margin: 14px 0 0; padding: 0; }
 dialog menu button { padding: 7px 16px; border-radius: 9px; background: color-mix(in srgb, var(--ink) 8%, transparent); }
 dialog menu button[value=ok] { background: var(--accent); color: #fff; }

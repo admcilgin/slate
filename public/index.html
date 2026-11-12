@@ -13,6 +13,8 @@
 
 <div id="corner">
   <button id="tasksBtn" class="glass" title="All tasks on this board">Tasks</button>
+  <button id="findBtn" class="glass" title="Search all boards (⌘K)">Search</button>
+  <button id="fitBtn" class="glass" title="Fit everything, or the selection, on screen (F)">Fit</button>
   <button id="zoom" class="glass" title="Reset zoom">100%</button>
 </div>
 <aside id="panel" class="glass" hidden></aside>
@@ -54,6 +56,11 @@
     <input id="askInput" autocomplete="off" spellcheck="false">
     <menu><button value="ok">Add</button><button value="">Cancel</button></menu>
   </form>
+</dialog>
+
+<dialog id="find" class="glass">
+  <input id="findInput" placeholder="Search all boards" aria-label="Search all boards" autocomplete="off" spellcheck="false">
+  <div id="findList"></div>
 </dialog>
 
 <script src="app.js"></script>

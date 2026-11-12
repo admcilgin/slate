@@ -28,6 +28,8 @@ Open http://localhost:4747. To use another port: `PORT=5000 node server.js`.
 - Code and JSON blocks with syntax colouring, collapse and copy; pasted JSON is formatted automatically
 - Arrows that attach to items and follow them, with labels and draggable ends
 - Numbered pins for calling out spots on a screenshot
+- Grouping, locking, alignment guides while dragging
+- Search across all boards
 - Tables
 - Bar, line and pie charts
 - Timelines
@@ -45,6 +47,11 @@ Open http://localhost:4747. To use another port: `PORT=5000 node server.js`.
 | Undo / redo | ⌘Z / ⇧⌘Z |
 | Copy / cut / paste, also between boards | ⌘C / ⌘X / ⌘V |
 | Duplicate | ⌘D |
+| Group / ungroup (Alt-click picks one item in a group) | ⌘G / ⇧⌘G |
+| Nudge | Arrow keys (Shift for 10 px) |
+| Move without snapping | Hold ⌘ while dragging |
+| Fit board or selection on screen | F |
+| Search all boards | ⌘K |
 | Delete | Backspace |
 | Tools | V select, H pan, P draw, L line, A arrow, R rectangle, O ellipse, T text, N note, M numbered pin |
 
@@ -88,7 +95,7 @@ After that you can say "put this flow on my Slate board" from any repo.
 
 ## Limits
 
-One person at a time: if you and an agent save within the same quarter-second, the last write wins. There is no grouping, rich text inside items, or links between boards.
+One person at a time: if you and an agent save within the same quarter-second, the last write wins. There are no frames or nested groups, rich text inside items, or links between boards.
 
 ## Code
 

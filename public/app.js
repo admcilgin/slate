@@ -26,6 +26,8 @@ let board = { items: [] }, sel = new Set(), editing = null, tool = 'select';
 let view = { x: 0, y: 0, z: 1 }, name = ''; // name = current board (data/boards/<name>.json)
 const api = n => '/api/board?b=' + encodeURIComponent(n);
 const els = new Map();
+const gX = document.createElement('div'), gY = document.createElement('div'); // alignment guides
+gX.className = gY.className = 'guide';
 
 const uid = () => Math.random().toString(36).slice(2, 9);
 const r = n => Math.round(n * 10) / 10;
@@ -238,6 +240,7 @@ function place(i) {
   e.style.cssText = `left:${i.x}px;top:${i.y}px;width:${i.w}px;${AUTO.has(i.type) ? 'min-height' : 'height'}:${i.h}px`;
   e.classList.toggle('sel', sel.has(i.id));
   e.classList.toggle('editing', editing === i.id);
+  e.classList.toggle('locked', !!i.locked);
 }
 
 function refresh(i) {
@@ -256,7 +259,7 @@ function refresh(i) {
 }
 
 function render() {
-  world.replaceChildren(marq);
+  world.replaceChildren(marq, gX, gY);
   els.clear();
   board.items.forEach(refresh);
   for (const l of board.items) if (l.type === 'line' && (l.from || l.to) && route(l)) refresh(l); // real heights are known only now
@@ -267,6 +270,55 @@ function render() {
 
 const box = i => ({ x: i.x, y: i.y, w: i.w, h: AUTO.has(i.type) ? Math.max(i.h, els.get(i.id)?.offsetHeight || 0) : i.h });
 const mid = i => { const b = box(i); return [b.x + b.w / 2, b.y + b.h / 2]; };
+const bounds = S => {
+  const B = S.map(box), x = Math.min(...B.map(b => b.x)), y = Math.min(...B.map(b => b.y));
+  return { x, y, w: Math.max(...B.map(b => b.x + b.w)) - x, h: Math.max(...B.map(b => b.y + b.h)) - y };
+};
+
+// ---------- groups, snapping, fit ----------
+
+const members = i => i.group ? board.items.filter(x => x.group === i.group && !x.locked).map(x => x.id) : [i.id];
+function expand() { // selecting one member of a group selects the whole group
+  const g = new Set(selected().map(i => i.group).filter(Boolean));
+  if (g.size) for (const i of board.items) if (g.has(i.group) && !i.locked) sel.add(i.id);
+}
+function group() { const S = selected(); if (S.length < 2) return; const g = uid(); S.forEach(i => i.group = g); commit(); syncUI(); }
+function ungroup() { selected().forEach(i => delete i.group); commit(); syncUI(); }
+
+function guides(x, y) {
+  gX.style.cssText = x == null ? '' : `display:block;left:${x}px;top:${-view.y / view.z}px;height:${innerHeight / view.z}px;width:${1 / view.z}px`;
+  gY.style.cssText = y == null ? '' : `display:block;top:${y}px;left:${-view.x / view.z}px;width:${innerWidth / view.z}px;height:${1 / view.z}px`;
+}
+
+// Pull a moving box onto the nearest edge or centre line of another item. Returns the correction and draws the guides.
+function snap(b, skip) {
+  const t = 6 / view.z;
+  let sx = 0, sy = 0, bx = t, by = t, gx = null, gy = null;
+  for (const i of board.items) {
+    if (skip.has(i.id) || isPts(i)) continue;
+    const o = box(i);
+    for (const a of [o.x, o.x + o.w / 2, o.x + o.w]) for (const m of [b.x, b.x + b.w / 2, b.x + b.w]) if (Math.abs(a - m) < bx) { bx = Math.abs(a - m); sx = a - m; gx = a; }
+    for (const a of [o.y, o.y + o.h / 2, o.y + o.h]) for (const m of [b.y, b.y + b.h / 2, b.y + b.h]) if (Math.abs(a - m) < by) { by = Math.abs(a - m); sy = a - m; gy = a; }
+  }
+  guides(gx, gy);
+  return { sx, sy };
+}
+
+function nudge(dx, dy) {
+  const S = selected().filter(i => !i.locked);
+  for (const i of S) { i.x = r(i.x + dx); i.y = r(i.y + dy); place(i); }
+  relink(new Set(S.map(i => i.id)));
+  dirty();
+}
+
+// Zoom out (never past 100%) until the selection, or the whole board, is on screen.
+function fit() {
+  const S = sel.size ? selected() : board.items;
+  if (!S.length) return;
+  const b = bounds(S), z = Math.min(1, Math.max(.1, Math.min((innerWidth - 160) / (b.w || 1), (innerHeight - 220) / (b.h || 1))));
+  view.z = z; view.x = innerWidth / 2 - (b.x + b.w / 2) * z; view.y = innerHeight / 2 - (b.y + b.h / 2) * z;
+  applyView();
+}
 
 // Where a ray from the item's centre towards point t leaves the item (plus a small gap).
 function edge(i, t) {
@@ -385,7 +437,7 @@ function add(props) {
 }
 
 function startEdit(i) {
-  if (i.type === 'draw' || i.type === 'image') return;
+  if (i.type === 'draw' || i.type === 'image' || i.locked) return;
   editing = i.id; sel = new Set([i.id]);
   LIVE.has(i.type) ? place(i) : refresh(i);
   const f = els.get(i.id).querySelector(i.type === 'code' ? '.txt' : '[contenteditable],textarea');
@@ -407,14 +459,15 @@ function stopEdit() {
 }
 
 function apply(fn) { selected().forEach(i => { fn(i); refresh(i); }); commit(); syncUI(); }
-function del() { if (!sel.size) return; board.items = board.items.filter(i => !sel.has(i.id)); sel.clear(); render(); commit(); }
+function del() { if (!sel.size) return; board.items = board.items.filter(i => !sel.has(i.id) || i.locked); sel.clear(); render(); commit(); } // locked items must be unlocked first
 // Add copies of items, shifted by dx/dy. Connectors between copied items stay connected; others are detached.
 function insert(items, dx, dy) {
   if (!items.length) return;
-  const ids = new Map(items.map(i => [i.id, uid()]));
+  const ids = new Map(items.map(i => [i.id, uid()])), groups = new Map();
   const copies = items.map(i => {
     const c = { ...structuredClone(i), id: ids.get(i.id), x: r(i.x + dx), y: r(i.y + dy) };
     for (const k of ['from', 'to']) if (c[k] != null) { if (ids.has(c[k])) c[k] = ids.get(c[k]); else delete c[k]; }
+    if (c.group) { if (!groups.has(c.group)) groups.set(c.group, uid()); c.group = groups.get(c.group); } // copies form their own group
     return c;
   });
   board.items.push(...copies); sel = new Set(copies.map(i => i.id)); render(); commit();
@@ -443,7 +496,9 @@ function syncUI() {
   const S = selected(), f = S[0];
   bar.hidden = !S.length;
   bar.replaceChildren();
-  if (f) {
+  if (f && S.every(i => i.locked)) {
+    bar.append(h('button', { textContent: 'Unlock', title: 'Unlock so it can be moved, edited and deleted', onclick: () => apply(i => { delete i.locked; }) }));
+  } else if (f) {
     const has = t => S.some(t), sep = () => bar.append(h('i'));
     const btn = (label, title, fn, on, raw) => bar.append(h('button', { textContent: label, title, ariaLabel: title, className: on ? 'on' : '', onclick: raw ? fn : () => apply(fn) }));
     PAL.forEach(c => bar.append(h('button', { className: 'sw' + ((f.color || '') === c ? ' on' : ''), style: `--c:${c || 'var(--ink)'}`, title: c ? 'Color ' + c : 'Default color', ariaLabel: c ? 'Color ' + c : 'Default color', onclick: () => apply(i => { if (c) i.color = c; else delete i.color; }) })));
@@ -469,6 +524,9 @@ function syncUI() {
       if (f.type === 'link' || f.type === 'embed') { sep(); btn(f.type === 'link' ? 'Embed' : 'As link', 'Switch between link card and embed', i => { i.type = i.type === 'link' ? 'embed' : 'link'; i.w = DEF[i.type].w; i.h = DEF[i.type].h; }); }
     }
     sep();
+    if (S.length > 1 && !(f.group && S.every(i => i.group === f.group))) btn('Group', 'Group (⌘G): move as one. Alt-click picks a single item inside', group, false, true);
+    if (has(i => i.group)) btn('Ungroup', 'Ungroup (⇧⌘G)', ungroup, false, true);
+    btn('Lock', 'Lock in place: cannot be moved, edited or deleted until unlocked', i => { i.locked = true; });
     btn('Front', 'Bring to front', () => reorder(true), false, true);
     btn('Back', 'Send to back', () => reorder(false), false, true);
     btn('Duplicate', 'Duplicate (⌘D). ⌘C / ⌘V also work, across boards', dup, false, true);
@@ -515,15 +573,17 @@ stage.addEventListener('pointerdown', e => {
   if (tool === 'select') {
     if (it && e.target.classList.contains('ep')) { sel = new Set([id]); drag = { k: 'ep', it, end: +e.target.dataset.end }; return syncUI(); }
     if (it && e.target.classList.contains('rz')) { drag = { k: 'rz', it, p, o: structuredClone(it) }; return; }
-    if (it) {
+    if (it && !it.locked) {
       if (dbl) return startEdit(it);
-      if (e.shiftKey) sel.has(id) ? sel.delete(id) : sel.add(id);
-      else if (!sel.has(id)) sel = new Set([id]);
-      drag = { k: 'move', p, o: new Map(selected().map(i => [i.id, { x: i.x, y: i.y }])) };
+      const ids = e.altKey ? [id] : members(it), on = sel.has(id); // Alt-click reaches one item inside a group
+      if (e.shiftKey) ids.forEach(x => on ? sel.delete(x) : sel.add(x));
+      else if (!on || e.altKey) sel = new Set(ids);
+      const S = selected().filter(i => !i.locked);
+      drag = { k: 'move', p, o: new Map(S.map(i => [i.id, { x: i.x, y: i.y }])), b: bounds(S) };
     } else {
-      if (dbl) return startEdit(add({ type: 'text', x: p.x, y: p.y - 12 }));
+      if (dbl && !it) return startEdit(add({ type: 'text', x: p.x, y: p.y - 12 }));
       if (!e.shiftKey) sel.clear();
-      drag = { k: 'marq', p, base: new Set(sel) };
+      drag = { k: 'marq', p, base: new Set(sel), hit: it?.id }; // a locked item acts like canvas when dragged; a plain click selects it
     }
     return syncUI();
   }
@@ -565,8 +625,11 @@ stage.addEventListener('pointermove', e => {
   if (d.k === 'move') {
     d.moved = true;
     const ids = new Set(d.o.keys());
+    let sx = 0, sy = 0;
+    if (e.metaKey || e.ctrlKey) guides(); // hold ⌘ to move freely
+    else ({ sx, sy } = snap({ x: d.b.x + dx, y: d.b.y + dy, w: d.b.w, h: d.b.h }, ids));
     for (const [id, o] of d.o) {
-      const i = byId(id); i.x = r(o.x + dx); i.y = r(o.y + dy); place(i);
+      const i = byId(id); i.x = r(o.x + dx + sx); i.y = r(o.y + dy + sy); place(i);
       if (i.type === 'line') for (const k of ['from', 'to']) if (i[k] != null && !ids.has(i[k])) delete i[k]; // dragging a connector away detaches it
     }
     relink(ids);
@@ -580,8 +643,10 @@ stage.addEventListener('pointermove', e => {
   } else if (d.k === 'marq') {
     const x = Math.min(p.x, d.p.x), y = Math.min(p.y, d.p.y), w = Math.abs(dx), hh = Math.abs(dy);
     marq.style.cssText = `display:block;left:${x}px;top:${y}px;width:${w}px;height:${hh}px`;
+    d.moved = true;
     sel = new Set(d.base);
-    for (const i of board.items) if (i.x <= x + w && i.x + i.w >= x && i.y <= y + hh && i.y + Math.max(i.h, els.get(i.id)?.offsetHeight || 0) >= y) sel.add(i.id);
+    for (const i of board.items) if (!i.locked && i.x <= x + w && i.x + i.w >= x && i.y <= y + hh && i.y + Math.max(i.h, els.get(i.id)?.offsetHeight || 0) >= y) sel.add(i.id);
+    expand();
     for (const [id, el] of els) el.classList.toggle('sel', sel.has(id));
   } else if (d.k === 'draw') {
     const q = d.it.points.at(-1);
@@ -600,7 +665,9 @@ function endDrag() {
   const d = drag;
   drag = null;
   marq.style.display = 'none';
+  guides();
   if (!d) return;
+  if (d.k === 'marq' && !d.moved && d.hit) sel = new Set([d.hit]);
   const drop = i => { board.items = board.items.filter(x => x !== i); els.get(i.id).remove(); els.delete(i.id); };
   if (d.k === 'draw') {
     const i = d.it;
@@ -644,7 +711,7 @@ stage.addEventListener('wheel', e => {
 const typing = e => e.target.closest?.('input,textarea,[contenteditable]');
 
 addEventListener('keydown', e => {
-  if ($('#ask').open) return;
+  if ($('#ask').open || $('#find').open) return;
   if (e.key === 'Escape') { if (editing) stopEdit(); else { sel.clear(); setTool('select'); } return; }
   if (typing(e)) return;
   const m = e.metaKey || e.ctrlKey, k = e.key.toLowerCase();
@@ -652,7 +719,15 @@ addEventListener('keydown', e => {
   else if (k === 'backspace' || k === 'delete') del();
   else if (m && k === 'z') { e.preventDefault(); e.shiftKey ? redo() : undo(); }
   else if (m && k === 'd') { e.preventDefault(); dup(); }
-  else if (m && k === 'a') { e.preventDefault(); sel = new Set(board.items.map(i => i.id)); syncUI(); }
+  else if (m && k === 'a') { e.preventDefault(); sel = new Set(board.items.filter(i => !i.locked).map(i => i.id)); syncUI(); }
+  else if (m && k === 'g') { e.preventDefault(); e.shiftKey ? ungroup() : group(); }
+  else if (m && (k === 'k' || k === 'f')) { e.preventDefault(); openFind(); }
+  else if (k.startsWith('arrow') && sel.size) {
+    e.preventDefault();
+    const s = e.shiftKey ? 10 : 1;
+    nudge(k === 'arrowleft' ? -s : k === 'arrowright' ? s : 0, k === 'arrowup' ? -s : k === 'arrowdown' ? s : 0);
+  }
+  else if (!m && k === 'f') fit();
   else if (!m && !e.altKey && KEYS[k]) setTool(KEYS[k]);
 });
 addEventListener('keyup', e => { if (e.key === ' ') { space = false; stage.classList.remove('pan'); } });
@@ -742,6 +817,47 @@ $('#file').onchange = e => { addFiles([...e.target.files], center()); e.target.v
 $('#zoom').onclick = () => { const c = center(); view.x = innerWidth / 2 - c.x; view.y = innerHeight / 2 - c.y; view.z = 1; applyView(); };
 $('#tasksBtn').onclick = () => { panel.hidden = !panel.hidden; renderPanel(); };
 
+// ---------- search across boards ----------
+
+let index = [], pendingFocus = null;
+const textOf = i => [i.text, i.title, i.label, i.url, i.alt, ...(i.tasks || []).map(t => t.text), ...(i.rows || []).flat(), ...(i.data || []).map(d => d.label), ...(i.events || []).map(e => e.label)]
+  .filter(x => x && typeof x === 'string').join(' · ');
+
+function showPending() {
+  const i = byId(pendingFocus);
+  pendingFocus = null;
+  if (i) { view.z = 1; focusItem(i); }
+}
+
+async function openFind() {
+  const d = $('#find');
+  if (d.open) return;
+  if (editing) stopEdit(); else commit();
+  await flush(); // so the open board's latest edits are searchable
+  $('#findInput').value = ''; $('#findList').replaceChildren();
+  d.showModal();
+  index = (await Promise.all((await boards()).map(async n => {
+    try { return (await (await fetch(api(n))).json()).items.map(i => ({ board: n, id: i.id, type: i.type, text: textOf(i) })); } catch { return []; }
+  }))).flat().filter(x => x.text);
+  findRender();
+}
+
+function findRender() {
+  const q = $('#findInput').value.trim().toLocaleLowerCase(), list = $('#findList');
+  const hits = q ? index.filter(x => x.text.toLocaleLowerCase().includes(q)).slice(0, 40) : [];
+  list.replaceChildren(...hits.map(x => {
+    const at = Math.max(0, x.text.toLocaleLowerCase().indexOf(q) - 30);
+    return h('button', { onclick: () => { $('#find').close(); pendingFocus = x.id; x.board === name ? showPending() : go(x.board); } },
+      h('span', { textContent: (at ? '…' : '') + x.text.slice(at, at + 90).replace(/\s+/g, ' ') }), h('small', { textContent: `${x.board} · ${x.type}` }));
+  }));
+  if (q && !hits.length) list.append(h('p', { textContent: 'No matches on any board' }));
+}
+$('#findInput').oninput = findRender;
+$('#findInput').onkeydown = e => { if (e.key === 'Enter') $('#findList button')?.click(); };
+$('#find').onclick = e => { if (e.target === $('#find')) $('#find').close(); }; // click outside closes
+$('#findBtn').onclick = openFind;
+$('#fitBtn').onclick = fit;
+
 // ---------- boards ----------
 
 const boards = () => fetch('/api/boards').then(res => res.json());
@@ -762,6 +878,7 @@ async function openBoard() {
   try { Object.assign(view, JSON.parse(localStorage['view:' + n])); } catch {}
   applyView(); renderBoards(list);
   await load(); hist = [];
+  if (pendingFocus) showPending();
 }
 
 async function askName(label, val) {

@@ -32,7 +32,10 @@ Pixels on an infinite canvas, `x` right and `y` down, any range including negati
 
 ## Item types
 
-Common fields on every item: `id`, `type`, `x`, `y`, `w`, `h`, and optional `color` (any CSS color; omit for the default ink, which adapts to dark mode).
+Common fields on every item: `id`, `type`, `x`, `y`, `w`, `h`, and optional `color` (any CSS color; omit for the default ink, which adapts to dark mode), `group` and `locked`.
+
+- `group`: any string. Items sharing the same `group` are selected and moved together in the UI. Use it to tie a screenshot to its pins and notes.
+- `locked`: true pins an item in place in the UI (no move, edit or delete until the user unlocks it). Good for a background screenshot. Don't change or remove items the user has locked unless asked.
 
 | type | fields | default size | notes |
 |---|---|---|---|
@@ -73,9 +76,11 @@ To annotate a screenshot, place the `image`, then either:
 - drop numbered `pin`s on the spots and put matching numbered notes beside the image (cleanest when there are many callouts), or
 - add a `line` with `arrow` whose first point is the spot on the image (give `x`,`y` and `points`) and whose `to` is the `text`, `note` or `code` item holding the detail — the flow, the endpoint, or the response JSON.
 
+Give the image, its pins and its notes the same `group` so the user can move the whole annotated screen as one.
+
 ## What Slate cannot do
 
-Links between boards, grouping or frames (pins and free arrow ends don't move with an image), rich text, multi-series charts, rotation, real-time multi-user editing. Don't write fields or types not listed here; unknown types render as a placeholder.
+Links between boards, frames or nested groups, rich text, multi-series charts, rotation, real-time multi-user editing. Don't write fields or types not listed here; unknown types render as a placeholder.
 
 ## Code map
 
