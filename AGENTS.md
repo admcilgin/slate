@@ -85,7 +85,7 @@ Give the image, its pins and its notes the same `group` so the user can move the
 
 ## What Slate cannot do
 
-Links between boards, frames or nested groups, rich text, multi-series charts, rotation, real-time multi-user editing. Don't write fields or types not listed here; unknown types render as a placeholder.
+Nested groups, rich text, multi-series charts, rotation, real-time multi-user editing. Don't write fields or types not listed here; unknown types render as a placeholder.
 
 ## Code map
 

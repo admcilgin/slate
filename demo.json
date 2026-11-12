@@ -1,5 +1,5 @@
 {"items":[
-{"id":"title","type":"text","x":80,"y":50,"w":420,"h":50,"text":"Slate","size":40,"bold":true,"href":"https://github.com/admcilgin/slate"},
+{"id":"title","type":"text","x":80,"y":50,"w":130,"h":50,"text":"Slate","size":40,"bold":true,"href":"https://github.com/admcilgin/slate"},
 {"id":"sub","type":"text","x":82,"y":108,"w":760,"h":24,"text":"Everything a board can hold. Double-click anything to edit it, double-click empty space to write.","color":"#8e8e93"},
 {"id":"h-text","type":"text","x":80,"y":170,"w":600,"h":34,"text":"Text, notes and callouts","size":24,"bold":true},
 {"id":"t-plain","type":"text","x":80,"y":226,"w":220,"h":24,"text":"Plain text, 15 px"},
