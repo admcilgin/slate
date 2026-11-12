@@ -54,8 +54,11 @@ Common fields on every item: `id`, `type`, `x`, `y`, `w`, `h`, and optional `col
 | `tasks` | `title`, `tasks`: `[{"text","done","due"}]` | 260×90 | `due` is optional `YYYY-MM-DD`; overdue open tasks show red. Height grows. |
 | `chart` | `chart`: `"bar"` \| `"line"` \| `"pie"`, `title`, `data`: `[{"label","value"}]` | 340×240 | One series. `color` sets the bar/line color; pie slices use a built-in palette. |
 | `timeline` | `title`, `events`: `[{"date","label"}]` | 560×170 | `date` as `YYYY-MM-DD` positions events proportionally; non-date strings are spaced evenly. Give ~140 px of width per event. |
+| `stat` | `label`, `value`, `delta` | 200×112 | Metric card: small label, big value, optional change such as `"+12%"`. `value` and `delta` are strings. A `delta` starting with `+` shows green, with `-` red. `color` tints the value. |
+| `callout` | `title`, `text` | 300×64 | Boxed remark with a coloured stripe on the left. `color` sets the stripe and tint: blue for info (default), orange for a warning, red for a risk, green for a decision. Height grows. |
+| `kanban` | `columns`: `[{"title","cards":["text",…]}]` | 600×150 | Columns of plain-text cards; the user drags cards between columns. Give ~200 px of width per column. Height grows. |
 
-Text styling for `text`, `note` and `shape`: `size` (px; the UI offers 13, 15, 24, 40), `bold`, `italic`, `align` (`"left"` \| `"center"` \| `"right"`). Text is plain; `\n` makes a line break. There is no rich text or markdown inside items.
+Text styling for `text`, `note`, `shape` and the text cards (`tasks`, `table`, `callout`, `kanban`, `stat`, `code`, `link`): `size` (px; the UI offers 13, 15, 24, 40), `bold`, `italic`, `align` (`"left"` \| `"center"` \| `"right"`). On a card the style applies to the whole card, with titles and captions scaled along; on `tasks`, `table`, `kanban`, `code` and `link`, `color` is the text colour. Text is plain; `\n` makes a line break. There is no rich text or markdown inside items.
 
 Palette the UI offers (use these to stay consistent): `#8e8e93` gray, `#ff3b30` red, `#ff9500` orange, `#ffcc00` yellow, `#34c759` green, `#007aff` blue, `#af52de` purple.
 

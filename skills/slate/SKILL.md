@@ -1,6 +1,6 @@
 ---
 name: slate
-description: Read and edit the user's Slate whiteboard boards from any project. Use when the user mentions Slate, their whiteboard or board ("put this on my board", "add to the board", "what's on my board", "tahtaya ekle", "boarda yaz"), or asks to lay out a diagram, flow, screen annotation, endpoint or JSON response, task list, table, chart, timeline or notes visually. Works without opening the app or running its server.
+description: Read and edit the user's Slate whiteboard boards from any project. Use when the user mentions Slate, their whiteboard or board ("put this on my board", "add to the board", "what's on my board", "tahtaya ekle", "boarda yaz"), or asks to lay out a diagram, flow, screen annotation, endpoint or JSON response, task list, kanban board, metric cards, callouts, table, chart, timeline or notes visually, or to start a new board for a project or topic ("yeni pano aç", "bu proje için board oluştur"). Works without opening the app or running its server.
 ---
 
 # Slate
@@ -28,7 +28,7 @@ For large or quote-heavy JSON, pass `-` and pipe it in: `node {{SLATE}}/cli.js a
 
 ## How to work
 
-1. **Find the board.** Run `status`. If the user didn't name a board and there are several, ask which one, or create a new one with `new` when the work is clearly its own topic.
+1. **Find the board.** Run `status`. If the user didn't name a board and there are several, ask which one, or create a new one with `new` when the work is clearly its own topic. A new project gets its own board: `new "<project name>"`, then one `add` with the starting layout (for example a title, a `kanban` for the work, `stat` cards for the numbers that matter and a `callout` for open decisions).
 2. **Look before you write.** Run `show <board>` so you know what is there and where the free space is. Each item has `x`, `y`, `w`, `h` in pixels; `x` grows right and `y` grows down.
 3. **Read the item reference once per session** before your first `add`: `{{SLATE}}/AGENTS.md` lists every item type, its fields, sizes, colours and layout tips. Only use types and fields documented there.
 4. **Add in one call.** Build the whole layout as an array and send it with a single `add`, giving every item explicit `x`/`y` so nothing overlaps. Items without a position are stacked below the existing content. Give items readable ids (`"login-api"`) so you can `set` them later.
@@ -40,7 +40,7 @@ For large or quote-heavy JSON, pass `-` and pipe it in: `node {{SLATE}}/cli.js a
 - Change only what the user asked for. Never remove or rewrite items you didn't create in this task unless asked.
 - The user may be editing the same board. Run `show` again right before a `set` or `rm` if time has passed since you last looked.
 - Images and videos must go through `asset` (or be http(s) URLs). Don't reference paths outside Slate.
-- To update a task list, table, chart or timeline, `set` the whole array field (`tasks`, `rows`, `data`, `events`) with the changed copy.
+- To update a task list, kanban, table, chart or timeline, `set` the whole array field (`tasks`, `rows`, `data`, `events`, `columns`) with the changed copy.
 
 ## Example
 

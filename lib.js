@@ -7,7 +7,7 @@ const BOARDS = path.join(DATA, 'boards');
 const RUN = path.join(DATA, '.server.json'); // written by a running server: { port, pid, url }
 const NAME = /^[\p{L}\p{N}_][\p{L}\p{N}_ -]{0,59}$/u; // board name = file name, so keep it tame
 const EMPTY = '{"items":[\n]}\n';
-const TYPES = ['text', 'note', 'shape', 'line', 'draw', 'code', 'pin', 'image', 'video', 'embed', 'link', 'table', 'tasks', 'chart', 'timeline'];
+const TYPES = ['text', 'note', 'shape', 'line', 'draw', 'code', 'pin', 'image', 'video', 'embed', 'link', 'table', 'tasks', 'chart', 'timeline', 'stat', 'callout', 'kanban'];
 
 const file = n => path.join(BOARDS, n + '.json');
 const list = () => fs.readdirSync(BOARDS).filter(f => f.endsWith('.json')).map(f => f.slice(0, -5)).filter(n => NAME.test(n)).sort((a, b) => a.localeCompare(b));
@@ -30,6 +30,6 @@ fs.mkdirSync(BOARDS, { recursive: true });
 const legacy = path.join(DATA, 'board.json'); // single-board layout from v0.1
 if (fs.existsSync(legacy) && !fs.existsSync(file('main'))) fs.renameSync(legacy, file('main'));
 const demo = path.join(__dirname, 'demo.json');
-if (!list().length) fs.writeFileSync(file('main'), fs.existsSync(demo) ? fs.readFileSync(demo) : EMPTY); // first run: welcome board
+if (!list().length) fs.existsSync(demo) ? fs.copyFileSync(demo, file('demo')) : fs.writeFileSync(file('main'), EMPTY); // first run: showcase board
 
 module.exports = { DATA, ASSETS, BOARDS, RUN, NAME, EMPTY, TYPES, file, list, format, read, write };

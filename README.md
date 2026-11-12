@@ -55,7 +55,7 @@ Open http://localhost:4747. To use another port: `PORT=5000 node server.js`.
 | Delete | Backspace |
 | Tools | V select, H pan, P draw, L line, A arrow, R rectangle, O ellipse, T text, N note, M numbered pin |
 
-Everything else (images, links, tables, tasks, charts, timelines) is in the **+** menu. Boards are switched, created, renamed and deleted from the menu in the top-left corner.
+Everything else (images, links, tables, tasks, charts, timelines, metric cards, callouts, kanban boards) is in the **+** menu. Boards are switched, created, renamed and deleted from the menu in the top-left corner.
 
 ## Working with an agent
 
@@ -63,7 +63,7 @@ Each board is one file, `data/boards/<name>.json`, with one item per line. An ag
 
 [AGENTS.md](AGENTS.md) describes every item type, its fields, the coordinate system and the limits of the platform. Claude Code, Codex and other agents that read `AGENTS.md` or `CLAUDE.md` pick it up automatically when started in this folder. Then ask in plain language:
 
-> Add a timeline of the launch plan to the main board, and a task list for this week next to it.
+> Add a timeline of the launch plan to the demo board, and a task list for this week next to it.
 
 There is no built-in chat and no API key to configure. The agent is whichever one you already use.
 
@@ -73,10 +73,10 @@ Agents working elsewhere on your machine use the CLI. It edits board files direc
 
 ```sh
 node cli.js status                      # where Slate lives, boards, URL if the server is up
-node cli.js show main                   # every item, one per line
-node cli.js add main '{"type":"note","text":"Ship it"}'
-node cli.js set main <id> '{"color":"#34c759"}'
-node cli.js rm main <id>
+node cli.js show demo                   # every item, one per line
+node cli.js add demo '{"type":"note","text":"Ship it"}'
+node cli.js set demo <id> '{"color":"#34c759"}'
+node cli.js rm demo <id>
 ```
 
 Run `node cli.js` for the full list. To teach Claude Code about Slate in every project, install the bundled skill once:

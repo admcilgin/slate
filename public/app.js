@@ -4,9 +4,11 @@ const stage = $('#stage'), world = $('#world'), marq = $('#marq'), bar = $('#bar
 
 const PAL = ['', '#8e8e93', '#ff3b30', '#ff9500', '#ffcc00', '#34c759', '#007aff', '#af52de'];
 const SERIES = ['#007aff', '#34c759', '#ff9500', '#ff3b30', '#af52de', '#ffcc00', '#8e8e93'];
-const AUTO = new Set(['text', 'tasks', 'table', 'link', 'code']);   // height grows with content
+const AUTO = new Set(['text', 'tasks', 'table', 'link', 'code', 'callout', 'kanban']);   // height grows with content
 const LIVE = new Set(['image', 'video', 'embed']);          // never rebuilt while moving/resizing (would reload media)
 const TEXTY = new Set(['text', 'note', 'shape']);
+const CARDS = new Set(['tasks', 'table', 'callout', 'kanban', 'stat', 'code', 'link']); // cards whose text takes size, bold, italic and align
+const INK = new Set(['tasks', 'table', 'kanban', 'code', 'link']);                      // …and where color is the text colour
 const KEYS = { v: 'select', h: 'hand', p: 'draw', l: 'line', a: 'arrow', r: 'rect', o: 'ellipse', t: 'text', n: 'note', m: 'pin' };
 const DEF = {
   text: { w: 240, h: 28, text: '' },
@@ -20,9 +22,13 @@ const DEF = {
   tasks: { w: 260, h: 90, title: 'Tasks', tasks: [{ text: '', done: false }] },
   chart: { w: 340, h: 240, chart: 'bar', title: 'Chart', data: [{ label: 'A', value: 3 }, { label: 'B', value: 5 }, { label: 'C', value: 2 }] },
   timeline: { w: 560, h: 170, title: 'Timeline', events: [{ date: '2026-01-01', label: 'Start' }, { date: '2026-06-01', label: 'Milestone' }] },
+  stat: { w: 200, h: 112, label: 'Metric', value: '0', delta: '' },
+  callout: { w: 300, h: 64, title: 'Note', text: '' },
+  kanban: { w: 600, h: 150, columns: [{ title: 'To do', cards: [''] }, { title: 'Doing', cards: [] }, { title: 'Done', cards: [] }] },
 };
 
 let board = { items: [] }, sel = new Set(), editing = null, tool = 'select';
+let kdrag = null; // kanban card being dragged: { id, c, n }
 let view = { x: 0, y: 0, z: 1 }, name = ''; // name = current board (data/boards/<name>.json)
 const api = n => '/api/board?b=' + encodeURIComponent(n);
 const els = new Map();
@@ -224,6 +230,54 @@ const R = {
     });
     b.append(tl);
   },
+  stat(i, b, ed) {
+    const v = bind(i, 'value', 'value', ed), d = bind(i, 'delta', 'delta', ed);
+    if (i.color) v.style.color = i.color;
+    d.classList.toggle('up', /^\s*\+/.test(i.delta));
+    d.classList.toggle('down', /^\s*[-−]/.test(i.delta));
+    b.append(bind(i, 'label', 'label', ed), v);
+    if (ed || i.delta) b.append(d);
+  },
+  callout(i, b, ed) {
+    b.style.cssText = `--c:${i.color || 'var(--accent)'}`;
+    if (ed || i.title) b.append(bind(i, 'title', 'title', ed));
+    b.append(bind(i, 'text', 'txt', ed));
+  },
+  kanban(i, b, ed) {
+    const focus = (c, n) => els.get(i.id).querySelectorAll('.kcol')[c]?.querySelectorAll('.kcard')[n]?.focus();
+    const redo = () => { refresh(i); relink(new Set([i.id])); };
+    const drop = (c, n) => ev => { // n = card to insert before; none = end of the column
+      ev.preventDefault(); ev.stopPropagation();
+      if (kdrag?.id !== i.id) return;
+      const [card] = i.columns[kdrag.c].cards.splice(kdrag.n, 1);
+      i.columns[c].cards.splice(n == null ? i.columns[c].cards.length : n - (kdrag.c === c && kdrag.n < n), 0, card);
+      kdrag = null; redo(); commit();
+    };
+    i.columns.forEach((col, c) => {
+      col.cards ??= [];
+      const el = h('div', { className: 'kcol' }, bind(col, 'title', 'title', ed));
+      col.cards.forEach((_, n) => {
+        const k = bind(col.cards, n, 'kcard', ed);
+        if (ed) k.onkeydown = ev => {
+          if (ev.key === 'Enter' && !ev.shiftKey) { ev.preventDefault(); col.cards.splice(n + 1, 0, ''); redo(); focus(c, n + 1); dirty(); }
+          else if (ev.key === 'Backspace' && !col.cards[n]) { ev.preventDefault(); col.cards.splice(n, 1); redo(); focus(c, Math.max(0, n - 1)); dirty(); }
+        };
+        else if (!i.locked) {
+          k.draggable = true;
+          k.ondragstart = ev => { kdrag = { id: i.id, c, n }; ev.dataTransfer.effectAllowed = 'move'; ev.dataTransfer.setData('text/plain', col.cards[n]); };
+          k.ondragover = ev => ev.preventDefault();
+          k.ondragend = () => kdrag = null;
+          k.ondblclick = () => startEdit(i); // draggable cards skip the stage's own pointer handling
+          k.ondrop = drop(c, n);
+        }
+        el.append(k);
+      });
+      if (ed) el.append(h('button', { textContent: '+ Card', onclick: () => { col.cards.push(''); redo(); focus(c, col.cards.length - 1); dirty(); } }));
+      el.ondragover = ev => ev.preventDefault();
+      el.ondrop = drop(c);
+      b.append(el);
+    });
+  },
 };
 
 function embedURL(u) {
@@ -248,6 +302,8 @@ function refresh(i) {
   e.dataset.id = i.id;
   e.append(b);
   if (R[i.type]) R[i.type](i, b, editing === i.id, e); else b.textContent = `Unknown type: ${i.type}`;
+  if (CARDS.has(i.type)) b.style.cssText += (i.size ? `;font-size:${+i.size}px` : '') + (i.bold ? ';font-weight:600' : '') + (i.italic ? ';font-style:italic' : '')
+    + (i.align ? `;text-align:${i.align}` : '') + (i.color && INK.has(i.type) ? `;color:${i.color}` : '');
   if (i.type === 'line') [0, 1].forEach(end => { // lines get a draggable handle on each end instead of a resize corner
     const q = i.points[end ? i.points.length - 1 : 0], d = h('div', { className: 'ep', style: `left:${q[0]}px;top:${q[1]}px` });
     d.dataset.end = end; e.append(d);
@@ -502,7 +558,7 @@ function syncUI() {
     const has = t => S.some(t), sep = () => bar.append(h('i'));
     const btn = (label, title, fn, on, raw) => bar.append(h('button', { textContent: label, title, ariaLabel: title, className: on ? 'on' : '', onclick: raw ? fn : () => apply(fn) }));
     PAL.forEach(c => bar.append(h('button', { className: 'sw' + ((f.color || '') === c ? ' on' : ''), style: `--c:${c || 'var(--ink)'}`, title: c ? 'Color ' + c : 'Default color', ariaLabel: c ? 'Color ' + c : 'Default color', onclick: () => apply(i => { if (c) i.color = c; else delete i.color; }) })));
-    if (has(i => TEXTY.has(i.type))) {
+    if (has(i => TEXTY.has(i.type) || CARDS.has(i.type))) {
       sep();
       [['S', 13], ['M', 15], ['L', 24], ['XL', 40]].forEach(([l, s]) => btn(l, 'Text size ' + l, i => i.size = s, (f.size || 15) === s));
       btn('B', 'Bold', i => i.bold = !i.bold, f.bold);
@@ -561,7 +617,7 @@ const toWorld = e => ({ x: r((e.clientX - view.x) / view.z), y: r((e.clientY - v
 stage.addEventListener('pointerdown', e => {
   const el = e.target.closest('.item'), it = el && byId(el.dataset.id);
   if (editing) { if (it?.id === editing) return; stopEdit(); }
-  if (e.target.closest('input,button,a,textarea')) return; // checkboxes, dates and links stay natively clickable
+  if (e.target.closest('input,button,a,textarea,[draggable=true]')) return; // checkboxes, dates and links stay natively clickable
   if (document.activeElement !== document.body) document.activeElement.blur();
   stage.setPointerCapture(e.pointerId);
   const p = toWorld(e), now = Date.now(), id = it?.id || null;
@@ -781,6 +837,7 @@ addEventListener('cut', e => { if (onCopy(e)) del(); });
 stage.addEventListener('dragover', e => e.preventDefault());
 stage.addEventListener('drop', e => {
   e.preventDefault();
+  if (kdrag) return; // a kanban card let go outside its board
   const p = toWorld(e), u = (e.dataTransfer.getData('text/uri-list') || e.dataTransfer.getData('text')).trim();
   if (e.dataTransfer.files.length) addFiles([...e.dataTransfer.files], p);
   else if (isHttp(u)) addURL(u.split(/\s/)[0], p);
@@ -820,7 +877,7 @@ $('#tasksBtn').onclick = () => { panel.hidden = !panel.hidden; renderPanel(); };
 // ---------- search across boards ----------
 
 let index = [], pendingFocus = null;
-const textOf = i => [i.text, i.title, i.label, i.url, i.alt, ...(i.tasks || []).map(t => t.text), ...(i.rows || []).flat(), ...(i.data || []).map(d => d.label), ...(i.events || []).map(e => e.label)]
+const textOf = i => [i.text, i.title, i.label, i.value, i.url, i.alt, ...(i.columns || []).flatMap(c => [c.title, ...(c.cards || [])]), ...(i.tasks || []).map(t => t.text), ...(i.rows || []).flat(), ...(i.data || []).map(d => d.label), ...(i.events || []).map(e => e.label)]
   .filter(x => x && typeof x === 'string').join(' · ');
 
 function showPending() {
