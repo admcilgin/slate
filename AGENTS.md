@@ -16,7 +16,7 @@ Slate is a local whiteboard. Run it with `node server.js` and open http://localh
 
 A running server records its port in `data/.server.json` (`{port, pid, url}`); `cli.js status` reports it, along with where the boards are. The default is http://localhost:4747, changed with `PORT=`. You only need the server so a human can look at the board.
 
-`node cli.js install` installs a Claude Code skill (`skills/slate/SKILL.md`) into `~/.claude/skills/slate`, so agents in other projects know Slate exists and how to drive it.
+`node cli.js install` installs the skill (`skills/slate/SKILL.md`) for every agent it finds on the machine: Claude Code (`~/.claude/skills/slate`), Codex (`~/.codex/skills/slate`, or under `$CODEX_HOME`) and GitHub Copilot (`~/.copilot/skills/slate`). Agents in other projects then know Slate exists and how to drive it.
 
 ## Seeing the board and being pointed at things
 

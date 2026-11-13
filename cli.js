@@ -30,7 +30,7 @@ const HELP = `Slate CLI. Boards live in ${L.BOARDS}
   shot <board> [id]             PNG of the board, or of one item or frame with its contents, to look at (--out=file)
   pdf <board> [id]              the same as a vector PDF (--out=file)
   html <board>                  the board as one self-contained HTML file to send to someone (--out=file)
-  install                       install the Claude Code skill into ~/.claude/skills/slate
+  install                       install the agent skill for Claude Code, Codex and GitHub Copilot (each one found here)
 
 JSON comes from the argument, or from stdin when it is "-" or missing.
 Item types and fields are documented in ${path.join(__dirname, 'AGENTS.md')}`;
@@ -275,11 +275,17 @@ const commands = {
     out({ board: n, file, bytes: fs.statSync(file).size });
   },
 
-  install() {
-    const dir = path.join(os.homedir(), '.claude', 'skills', 'slate');
-    fs.mkdirSync(dir, { recursive: true });
-    fs.writeFileSync(path.join(dir, 'SKILL.md'), fs.readFileSync(path.join(__dirname, 'skills', 'slate', 'SKILL.md'), 'utf8').replaceAll('{{SLATE}}', __dirname));
-    out(`Installed ${path.join(dir, 'SKILL.md')}`);
+  install() { // the three read the same SKILL.md format, each from its own folder
+    const home = os.homedir(), skill = fs.readFileSync(path.join(__dirname, 'skills', 'slate', 'SKILL.md'), 'utf8').replaceAll('{{SLATE}}', __dirname);
+    const agents = [['Claude Code', path.join(home, '.claude')], ['Codex', process.env.CODEX_HOME || path.join(home, '.codex')], ['GitHub Copilot', path.join(home, '.copilot')]];
+    const found = agents.filter(([, d]) => fs.existsSync(d));
+    if (!found.length) die(`no agent found: looked for ${agents.map(([, d]) => d).join(', ')}. Run the agent once, then install again`);
+    for (const [, d] of found) {
+      const dir = path.join(d, 'skills', 'slate');
+      fs.mkdirSync(dir, { recursive: true });
+      fs.writeFileSync(path.join(dir, 'SKILL.md'), skill);
+    }
+    out(found.map(([n, d]) => `${n}: ${path.join(d, 'skills', 'slate', 'SKILL.md')}`).join('\n'));
   },
 };
 

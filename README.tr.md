@@ -125,13 +125,21 @@ Kanban, ajan için bir iş kuyruğu olarak çalışır: kartı yazın, ne istedi
 
 `wait` ile ajana yazmadan yön verirsiniz: ekran görüntüsünde bir yeri yuvarlak içine alın, ne değişeceğini söyleyen bir not bırakın, ajan onu alır. `shot` ve `pdf`, bilgisayarınızda zaten kurulu olan Chrome, Chromium, Edge ya da Brave'i kullanır.
 
-Tam liste için `node cli.js` çalıştırın. Claude Code'un Slate'i her projede tanıması için birlikte gelen skill'i bir kez kurun:
+Tam liste için `node cli.js` çalıştırın. Slate klasörünün içinde her ajan `AGENTS.md`'yi kendiliğinden okur. Ajanlarınızın Slate'i diğer projelerde de tanıması için birlikte gelen skill'i bir kez kurun:
 
 ```sh
 node cli.js install
 ```
 
-Bundan sonra herhangi bir repodan "bu akışı Slate panoma koy" diyebilirsiniz.
+Bilgisayarınızda bulduğu her ajan için kurar:
+
+| Ajan | Skill'in gittiği yer |
+|---|---|
+| Claude Code | `~/.claude/skills/slate` |
+| Codex | `~/.codex/skills/slate` (ya da `$CODEX_HOME/skills/slate`) |
+| GitHub Copilot (CLI, VS Code agent modu) | `~/.copilot/skills/slate` |
+
+Sonradan kurduğunuz bir ajan için `install`'u yeniden çalıştırın; `git pull`'dan sonra da çalıştırın ki skill yeni komutları bilsin. Bundan sonra herhangi bir repodan "bu akışı Slate panoma koy" diyebilirsiniz.
 
 ## Verileriniz
 

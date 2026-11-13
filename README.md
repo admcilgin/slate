@@ -125,13 +125,21 @@ A kanban works as a task queue for an agent: write a card with the brief in its 
 
 With `wait` you can steer an agent without typing to it: circle a part of a screenshot, drop a note that says what to change, and the agent picks it up. `shot` and `pdf` use the Chrome, Chromium, Edge or Brave already on your machine.
 
-Run `node cli.js` for the full list. To teach Claude Code about Slate in every project, install the bundled skill once:
+Run `node cli.js` for the full list. Inside the Slate folder every agent picks up `AGENTS.md` by itself. To teach your agents about Slate in every other project too, install the bundled skill once:
 
 ```sh
 node cli.js install
 ```
 
-After that you can say "put this flow on my Slate board" from any repo.
+It installs for each agent it finds on your machine:
+
+| Agent | Skill goes to |
+|---|---|
+| Claude Code | `~/.claude/skills/slate` |
+| Codex | `~/.codex/skills/slate` (or `$CODEX_HOME/skills/slate`) |
+| GitHub Copilot (CLI, VS Code agent mode) | `~/.copilot/skills/slate` |
+
+An agent you install later is picked up by running `install` again; run it again after `git pull` too, so the skill knows the new commands. After that you can say "put this flow on my Slate board" from any repo.
 
 ## Your data
 
