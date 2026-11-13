@@ -22,6 +22,10 @@ Run every command as `node {{SLATE}}/cli.js <command>`.
 | `rm <board> <id> [id…]` | Delete items |
 | `rm-board <board>` | Delete a whole board (only when the user asks) |
 | `asset <file>` | Copy an image or video into Slate. Prints the `src` to use in an `image` or `video` item |
+| `selection` | The items the user has selected in the open tab: what "this" or "these" refers to |
+| `wait <board> --timeout=<s>` | Block until the user changes the board, then print what was added, changed and removed, and what is selected |
+| `shot <board> [id]` | Write a PNG of the board (or of one item, or a frame with its contents) and print its path, for you to look at |
+| `pdf <board> [id]` / `html <board>` | Write a PDF, or one self-contained HTML file that opens without Slate, to give to someone. `--out=<file>` |
 | `start` / `stop` | Start the server in the background and print the URL, or stop it |
 
 For large or quote-heavy JSON, pass `-` and pipe it in: `node {{SLATE}}/cli.js add main - < items.json`, or use a heredoc. Board names with spaces need quoting.
@@ -34,6 +38,9 @@ For large or quote-heavy JSON, pass `-` and pipe it in: `node {{SLATE}}/cli.js a
 4. **Add in one call.** Build the whole layout as an array and send it with a single `add`, giving every item explicit `x`/`y` so nothing overlaps. Items without a position are stacked below the existing content. Give items readable ids (`"login-api"`) so you can `set` them later.
 5. **Change with `set`, not delete-and-add.** `set` keeps the item's id and position.
 6. **Tell the user where to look.** If `status` shows the server running, give them the board URL (`<url>/#<board>`). If it isn't running and they want to see the result, run `start`. You never need the server for your own reads and writes.
+
+7. **Look at the picture when the numbers are not enough.** `shot` then read the PNG: to understand a hand-drawn sketch or wireframe (freehand strokes are unreadable as JSON), and to check a layout you just wrote for overlaps. Needs a Chromium-family browser installed.
+8. **Let the user point.** If they say "this" or "the selected ones", run `selection`. If they want to steer you from the board ("watch the board", "I'll mark what to change"), loop on `wait <board> --timeout=<s>`: act on what they added or changed, then wait again.
 
 ## Rules
 

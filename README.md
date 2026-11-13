@@ -54,6 +54,7 @@ The first run opens a board called `demo` that shows every kind of item.
 - Resize from any corner or side; scale a whole selection from its corners
 - Multiple boards, each with its own link, and search across all of them
 - PDF export of the board, a selection or a frame
+- Share: the whole board as one HTML file that opens in any browser, media included
 
 ## Using it
 
@@ -74,6 +75,8 @@ The first run opens a board called `demo` that shows every kind of item.
 | Fit board or selection on screen | F |
 | Search all boards | ⌘K |
 | Export the selection or the whole board as PDF | ⌘P |
+| Send the board to someone as a single HTML file | Share, top right |
+| Move the toolbar to the bottom, left, top or right | Last button on the toolbar |
 | Delete | Backspace |
 | Tools | V select, H pan, P draw, L line, A arrow, R rectangle, O ellipse, D diamond, T text, N note, M numbered pin |
 
@@ -103,6 +106,19 @@ node cli.js rm demo <id>
 node cli.js start                       # start the server in the background; stop ends it
 ```
 
+The board also works the other way round, as the thing you point with:
+
+```sh
+node cli.js selection                   # what you have selected in the open tab: "make these a task list"
+node cli.js wait demo                   # blocks until you change the board, then prints what changed
+node cli.js shot demo                   # a PNG the agent can look at: your sketches, or its own layout
+node cli.js shot demo <frame-id>        # one frame with its contents
+node cli.js pdf demo                    # vector PDF, no print dialog
+node cli.js html demo                   # one self-contained HTML file to send to someone
+```
+
+With `wait` you can steer an agent without typing to it: circle a part of a screenshot, drop a note that says what to change, and the agent picks it up. `shot` and `pdf` use the Chrome, Chromium, Edge or Brave already on your machine.
+
 Run `node cli.js` for the full list. To teach Claude Code about Slate in every project, install the bundled skill once:
 
 ```sh
@@ -123,12 +139,12 @@ After that you can say "put this flow on my Slate board" from any repo.
 - One person at a time: if you and an agent save within the same quarter-second, the last write wins.
 - Text inside an item is plain. Style applies to the whole item, not to single words.
 - Items cannot be rotated, and groups cannot be nested.
-- Export is PDF only, through the browser's print dialog.
+- A shared HTML file is a copy: whoever opens it can move things around, but nothing is saved and it does not sync back. Embeds in it need a connection, and some (YouTube) refuse to play from a local file.
 - Scaling a selection changes positions and sizes, not text size.
 
 ## Code
 
-About 1,700 lines, no build step.
+About 1,900 lines, no build step.
 
 - `cli.js` reads and edits boards from the command line; `lib.js` holds what it shares with the server.
 - `server.js` serves the app, reads and writes board files, and pushes live-reload events.

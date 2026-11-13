@@ -12,11 +12,18 @@ Slate is a local whiteboard. Run it with `node server.js` and open http://localh
 ## Two ways in
 
 - **Inside this folder:** edit `data/boards/<name>.json` directly, following the rules below.
-- **From anywhere else:** use the CLI, `node <slate>/cli.js`. It needs no browser and no running server, validates what you write, and keeps the file format right. Run it with no arguments for the command list: `status`, `boards`, `show`, `new`, `add`, `set`, `rm`, `rm-board`, `asset`, `start`, `stop`.
+- **From anywhere else:** use the CLI, `node <slate>/cli.js`. It needs no browser and no running server, validates what you write, and keeps the file format right. Run it with no arguments for the command list: `status`, `boards`, `show`, `new`, `add`, `set`, `rm`, `rm-board`, `asset`, `selection`, `wait`, `shot`, `pdf`, `html`, `start`, `stop`.
 
 A running server records its port in `data/.server.json` (`{port, pid, url}`); `cli.js status` reports it, along with where the boards are. The default is http://localhost:4747, changed with `PORT=`. You only need the server so a human can look at the board.
 
 `node cli.js install` installs a Claude Code skill (`skills/slate/SKILL.md`) into `~/.claude/skills/slate`, so agents in other projects know Slate exists and how to drive it.
+
+## Seeing the board and being pointed at things
+
+- **`node cli.js shot <board> [id]`** writes a PNG to `data/shots/` and prints its path; read that image. Use it to look at what the user drew by hand (freehand strokes are only numbers in the file), to read a sketch or wireframe, and to check your own layout after writing: items whose height grows with their content are taller on screen than the `h` in the file. With an `id` it captures that item, or that frame with everything inside it. Needs Chrome, Chromium, Edge or Brave on the machine (`CHROME=/path` to point at one).
+- **`node cli.js selection`** prints the items the user has selected in the open tab. When they say "this", "these" or "the selected ones", that is what they mean. `at` is when the selection last changed; it can be stale if the tab is closed.
+- **`node cli.js wait <board>`** blocks until the user changes the board and has paused for 3 seconds (`--quiet=<s>`), then prints `added`, `changed` (each with a `was` holding the old values), `removed` and `selected`. Use it when the user wants to direct you from the board: they circle something, drop a note saying what to do, drag a card to another column, and you act on it and wait again. Pass `--timeout=<s>` below your shell's own limit; on timeout it prints `{"timeout":true}` and you can call it again.
+- `pdf <board> [id]` and `html <board>` write a file to hand to someone: a vector PDF, or one self-contained HTML page with the board and its local media inside that opens in any browser without Slate. Both take `--out=<file>`.
 
 ## Rules for writing
 
@@ -89,8 +96,8 @@ Nested groups, rich text, multi-series charts, rotation, real-time multi-user ed
 
 ## Code map
 
-- `lib.js` — board paths, naming and file format, shared by the server and the CLI.
+- `lib.js` — board paths, naming and file format, and the single-file HTML export, shared by the server and the CLI.
 - `cli.js` — command-line access to boards for agents and scripts.
-- `server.js` — static files, `GET /api/boards`, `GET/PUT/DELETE /api/board?b=<name>`, `POST /api/upload`, `GET /api/events` (live reload). Listens on 127.0.0.1 only.
+- `server.js` — static files, `GET /api/boards`, `GET/PUT/DELETE /api/board?b=<name>`, `POST /api/upload`, `GET /api/events` (live reload), `PUT /api/cursor` (the tab's selection, kept in `data/.cursor.json`), `GET /api/export?b=<name>` (the shared HTML file). Listens on 127.0.0.1 only.
 - `public/app.js` — canvas, tools, one renderer per item type in `R`, defaults in `DEF`. Adding a type means one entry in each, plus a row in the table above.
 - `public/style.css`, `public/index.html` — look and chrome.
