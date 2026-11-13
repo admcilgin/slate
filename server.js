@@ -3,12 +3,7 @@ const http = require('http'), fs = require('fs'), path = require('path');
 
 const PORT = process.env.PORT || 4747;
 const PUB = path.join(__dirname, 'public');
-const { ASSETS, BOARDS, RUN, NAME, EMPTY, file, list, format } = require('./lib');
-const MIME = {
-  '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json',
-  '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.gif': 'image/gif', '.webp': 'image/webp',
-  '.svg': 'image/svg+xml', '.avif': 'image/avif', '.mp4': 'video/mp4', '.webm': 'video/webm', '.mov': 'video/quicktime', '.m4v': 'video/mp4',
-};
+const { ASSETS, BOARDS, RUN, CURSOR, MIME, NAME, EMPTY, file, list, format, exportHTML } = require('./lib');
 
 // Live reload: tell browsers which board someone else (an agent, an editor) changed, created or deleted.
 const lastWritten = new Map(list().map(n => [n, fs.readFileSync(file(n), 'utf8')])), timers = new Map();
@@ -88,6 +83,18 @@ http.createServer(async (req, res) => {
         broadcast(name);
         return res.writeHead(204).end();
       }
+    }
+
+    if (p === '/api/export' && req.method === 'GET') { // the board as one self-contained HTML file
+      const name = url.searchParams.get('b') || '';
+      if (!NAME.test(name) || !fs.existsSync(file(name))) return res.writeHead(404).end('No such board');
+      return res.writeHead(200, { 'Content-Type': MIME['.html'], 'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent(name)}.html` }).end(exportHTML(name));
+    }
+
+    if (p === '/api/cursor' && req.method === 'PUT') { // what the user has selected, for `cli.js selection`
+      const c = JSON.parse(await readBody(req));
+      fs.writeFileSync(CURSOR, JSON.stringify({ board: String(c.board), selected: [].concat(c.selected || []).map(String), at: new Date().toISOString() }));
+      return res.writeHead(204).end();
     }
 
     if (p === '/api/upload' && req.method === 'POST') {

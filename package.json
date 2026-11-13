@@ -2,6 +2,7 @@
   "name": "slate",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT",
   "description": "Local whiteboard that agents can read and write",
   "bin": { "slate": "cli.js" },
   "scripts": {

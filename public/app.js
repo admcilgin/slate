@@ -185,8 +185,12 @@ const R = {
     b.append(bind(i, 'text', 'txt', ed));
   },
   image(i, b) { b.append(h('img', { src: i.src || '', alt: i.alt || '', draggable: false })); },
-  video(i, b) { b.append(h('video', { src: i.src || '', controls: true, preload: 'metadata' })); },
+  video(i, b) {
+    if (HEADLESS) return b.append(h('div', { className: 'bad', textContent: 'Video: ' + (i.src || '') })); // a remote player can stall a capture, and shows nothing in a still anyway
+    b.append(h('video', { src: i.src || '', controls: true, preload: 'metadata' }));
+  },
   embed(i, b) {
+    if (HEADLESS) return b.append(h('div', { className: 'bad', textContent: 'Embed: ' + (i.url || '') }));
     if (!isHttp(i.url)) return b.append(h('div', { className: 'bad', textContent: 'Embed needs an http(s) URL' }));
     b.append(h('iframe', { src: embedURL(i.url), loading: 'lazy', allow: 'fullscreen; autoplay; encrypted-media; picture-in-picture', title: host(i.url) }));
   },
@@ -277,7 +281,9 @@ const R = {
       const el = h('div', { className: 'kcol' }, bind(col, 'title', 'title', ed));
       col.cards.forEach((_, n) => {
         const k = bind(col.cards, n, 'kcard', ed);
-        if (ed) k.onkeydown = ev => {
+        const [head, ...more] = String(col.cards[n]).split('\n'); // first line is the card's title, the rest its detail
+        if (!ed && more.length) k.replaceChildren(head, h('div', { className: 'kdetail', textContent: more.join('\n') }));
+        if (ed) k.onkeydown = ev => { // Enter adds a card; Shift+Enter breaks the line, which starts the detail
           if (ev.key === 'Enter' && !ev.shiftKey) { ev.preventDefault(); col.cards.splice(n + 1, 0, ''); redo(); focus(c, n + 1); dirty(); }
           else if (ev.key === 'Backspace' && !col.cards[n]) { ev.preventDefault(); col.cards.splice(n, 1); redo(); focus(c, Math.max(0, n - 1)); dirty(); }
         };
@@ -677,6 +683,20 @@ function syncUI() {
   }
   selBox();
   renderPanel();
+  cursor();
+}
+
+// Tell the server what is selected, so an agent can be told "this one": `cli.js selection` reads it back.
+const HEADLESS = /[?&](shot|print)\b/.test(location.search); // a capture run must not overwrite the user's selection
+let curT, curLast = '';
+function cursor() {
+  clearTimeout(curT);
+  curT = setTimeout(() => {
+    const s = JSON.stringify({ board: name, selected: [...sel] });
+    if (!name || HEADLESS || s === curLast) return;
+    curLast = s;
+    fetch('/api/cursor', { method: 'PUT', body: s }).catch(() => {});
+  }, 300);
 }
 
 function renderPanel() {
@@ -993,6 +1013,12 @@ $('#file').onchange = e => { addFiles([...e.target.files], center()); e.target.v
 $('#zoom').onclick = () => { const c = center(); view.x = innerWidth / 2 - c.x; view.y = innerHeight / 2 - c.y; view.z = 1; applyView(); };
 $('#tasksBtn').onclick = () => { panel.hidden = !panel.hidden; renderPanel(); };
 
+// Where the toolbar sits. A preference of this browser, not part of the board.
+const DOCKS = ['bottom', 'left', 'top', 'right'];
+const dock = d => { document.documentElement.dataset.dock = d = DOCKS.includes(d) ? d : 'bottom'; try { localStorage.dock = d; } catch {} };
+try { dock(localStorage.dock); } catch { dock(); }
+$('#dockBtn').onclick = () => dock(DOCKS[(DOCKS.indexOf(document.documentElement.dataset.dock) + 1) % 4]);
+
 // ---------- search across boards ----------
 
 let index = [], pendingFocus = null;
@@ -1038,18 +1064,31 @@ $('#alignMenu').onclick = e => { const k = e.target.dataset.al; if (k) { $('#ali
 // ---------- PDF ----------
 
 // Printing gives a vector PDF. The page is sized to the selection (or the whole board) and everything else is hidden; see @media print.
-function printSetup() {
+// `shot` lays the same thing out on screen at the top-left instead, for a headless screenshot; cli.js reads the size from data-shot.
+function printSetup(shot) {
   if (editing) stopEdit();
   const S = sel.size ? carried(selected()) : board.items;
   if (!S.length) return false;
   const b = bounds(S), pad = 32, keep = new Set(S.map(i => i.id));
   for (const [id, e] of els) e.classList.toggle('noprint', !keep.has(id));
   pg.textContent = `@page{size:${Math.ceil(b.w + pad * 2)}px ${Math.ceil(b.h + pad * 2)}px;margin:0}@media print{#world{transform:translate(${pad - b.x}px,${pad - b.y}px)!important}}`;
+  if (shot === true) {
+    const z = Math.min(1, 2400 / Math.max(b.w, b.h)); // keep huge boards to a size an agent can take in
+    view = { x: pad - b.x * z, y: pad - b.y * z, z };
+    sel.clear(); applyView(); syncUI();
+    document.body.classList.add('shot');
+    document.documentElement.dataset.shot = `${Math.ceil(b.w * z + pad * 2)},${Math.ceil(b.h * z + pad * 2)}`;
+  }
   return true;
 }
 const exportPDF = () => { if (printSetup()) print(); };
-addEventListener('beforeprint', printSetup); // the browser's own Print command gets the same layout
+addEventListener('beforeprint', () => printSetup()); // the browser's own Print command gets the same layout
 $('#pdfBtn').onclick = exportPDF;
+$('#shareBtn').onclick = async () => {
+  if (editing) stopEdit(); else commit();
+  await flush();
+  location.href = '/api/export?b=' + encodeURIComponent(name); // comes back as a download, so the page stays
+};
 
 // ---------- boards ----------
 
@@ -1068,9 +1107,11 @@ async function openBoard() {
   name = n; localStorage.board = n; document.title = n + ' · Slate';
   board = { items: [] }; hist = []; fut = []; last = ''; sel.clear(); editing = null;
   view = { x: 0, y: 0, z: 1 };
-  try { Object.assign(view, JSON.parse(localStorage['view:' + n])); } catch {}
+  let seen;
+  try { seen = JSON.parse(localStorage['view:' + n]); Object.assign(view, seen); } catch {}
   applyView(); renderBoards(list);
   await load(); hist = [];
+  if (!seen) fit(); // first visit (a new board, or a shared copy): start with everything on screen
   if (pendingFocus) showPending();
 }
 
@@ -1128,5 +1169,11 @@ function listen() {
   es.onopen = () => onChange(name); // (re)connected, e.g. after a server restart: catch up on anything missed
   es.onerror = () => { es.close(); setTimeout(listen, 2000); }; // don't rely on the browser's own retry: it stalls when the server is down
 }
-listen();
-openBoard().then(() => { if (new URLSearchParams(location.search).has('print')) printSetup(); }); // ?print lays the page out for a headless print-to-pdf
+if (!HEADLESS) listen(); // a connection that never ends would keep a headless capture waiting forever
+// ?print lays the page out for a headless print-to-pdf and ?shot for a screenshot; either takes an item id (a frame, say) to capture only that.
+openBoard().then(() => {
+  const q = new URLSearchParams(location.search), id = q.get('shot') ?? q.get('print');
+  if (id == null) return;
+  if (byId(id)) { sel = new Set([id]); expand(); }
+  printSetup(q.has('shot'));
+});

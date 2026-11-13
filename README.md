@@ -6,7 +6,9 @@ A local whiteboard that AI agents can read and write.
 
 ![The Slate demo board: text, sticky notes, callouts, a flowchart in a frame, lines, pins and an annotated screenshot](docs/board.jpg)
 
-[Watch the one-minute demo video](docs/slate-demo.mp4) (silent).
+[![Two-minute demo: an agent turns a selected list into a kanban, works a card through to Done, and builds a form from a hand-drawn sketch](docs/demo-poster.jpg)](docs/slate-demo.mp4)
+
+[▶ Watch the two-minute demo video](docs/slate-demo.mp4) (silent).
 
 Slate runs on your machine, stores every board as a plain JSON file, and has no dependencies. Draw on it yourself, or point a coding agent at the folder and ask it to lay out a plan, a flow or a roadmap. Whatever the agent writes appears on the open board straight away.
 
@@ -40,7 +42,7 @@ The first run opens a board called `demo` that shows every kind of item.
 **Data and planning**
 - Metric cards, tables, and bar, line and pie charts
 - Task lists with due dates, plus a panel listing every open task on the board
-- Kanban boards with cards you drag between columns
+- Kanban boards with cards you drag between columns; a card can carry detail lines under its title (Shift+Enter)
 - Timelines
 
 **Media and links**
@@ -54,6 +56,7 @@ The first run opens a board called `demo` that shows every kind of item.
 - Resize from any corner or side; scale a whole selection from its corners
 - Multiple boards, each with its own link, and search across all of them
 - PDF export of the board, a selection or a frame
+- Share: the whole board as one HTML file that opens in any browser, media included
 
 ## Using it
 
@@ -74,6 +77,8 @@ The first run opens a board called `demo` that shows every kind of item.
 | Fit board or selection on screen | F |
 | Search all boards | ⌘K |
 | Export the selection or the whole board as PDF | ⌘P |
+| Send the board to someone as a single HTML file | Share, top right |
+| Move the toolbar to the bottom, left, top or right | Last button on the toolbar |
 | Delete | Backspace |
 | Tools | V select, H pan, P draw, L line, A arrow, R rectangle, O ellipse, D diamond, T text, N note, M numbered pin |
 
@@ -103,6 +108,23 @@ node cli.js rm demo <id>
 node cli.js start                       # start the server in the background; stop ends it
 ```
 
+The board also works the other way round, as the thing you point with:
+
+```sh
+node cli.js selection                   # what you have selected in the open tab: "make these a task list"
+node cli.js wait demo                   # blocks until you change the board, then prints what changed
+node cli.js shot demo                   # a PNG the agent can look at: your sketches, or its own layout
+node cli.js shot demo <frame-id>        # one frame with its contents
+node cli.js pdf demo                    # vector PDF, no print dialog
+node cli.js html demo                   # one self-contained HTML file to send to someone
+node cli.js cards demo                  # every kanban card with its column and detail
+node cli.js move demo "Export to PNG" Doing   # take a card; later move it to Done
+```
+
+A kanban works as a task queue for an agent: write a card with the brief in its detail lines, and ask the agent to work the board. It moves the card to your in-progress column when it starts and to done when the work is finished.
+
+With `wait` you can steer an agent without typing to it: circle a part of a screenshot, drop a note that says what to change, and the agent picks it up. `shot` and `pdf` use the Chrome, Chromium, Edge or Brave already on your machine.
+
 Run `node cli.js` for the full list. To teach Claude Code about Slate in every project, install the bundled skill once:
 
 ```sh
@@ -123,14 +145,18 @@ After that you can say "put this flow on my Slate board" from any repo.
 - One person at a time: if you and an agent save within the same quarter-second, the last write wins.
 - Text inside an item is plain. Style applies to the whole item, not to single words.
 - Items cannot be rotated, and groups cannot be nested.
-- Export is PDF only, through the browser's print dialog.
+- A shared HTML file is a copy: whoever opens it can move things around, but nothing is saved and it does not sync back. Embeds in it need a connection, and some (YouTube) refuse to play from a local file.
 - Scaling a selection changes positions and sizes, not text size.
 
 ## Code
 
-About 1,700 lines, no build step.
+About 1,900 lines, no build step.
 
 - `cli.js` reads and edits boards from the command line; `lib.js` holds what it shares with the server.
 - `server.js` serves the app, reads and writes board files, and pushes live-reload events.
 - `public/app.js` is the canvas. Each item type has one renderer in `R` and its defaults in `DEF`.
 - `demo.json` is the showcase board copied on first run.
+
+## License
+
+[MIT](LICENSE). Free to use, change and ship, for personal or commercial work. Keep the copyright notice.

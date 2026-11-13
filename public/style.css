@@ -115,6 +115,7 @@ path.hit { stroke: transparent; stroke-width: 18; pointer-events: stroke; }
 .kcol .title { margin: 2px 4px 2px; color: var(--sub); font-size: .86em; min-height: 1.4em; }
 .kcard { margin-top: 6px; padding: 7px 9px; border-radius: 8px; background: var(--card); border: .5px solid var(--line); font-size: .93em; white-space: pre-wrap; overflow-wrap: anywhere; min-height: 1.4em; box-sizing: content-box; }
 .kcard[draggable=true] { cursor: grab; }
+.kdetail { margin-top: 3px; color: var(--sub); font-size: .9em; }
 .editing .kcard:empty::before { content: 'Card'; }
 .kcol button { margin-top: 6px; padding: 4px 8px; border-radius: 6px; color: var(--sub); font-size: 12px; }
 .kcol button:hover { color: var(--ink); }
@@ -168,6 +169,17 @@ input[type=checkbox]:checked { background: var(--accent) center/11px no-repeat u
 .menu button.on { color: var(--accent); font-weight: 600; }
 .menu i { display: block; height: 1px; margin: 5px 8px; background: var(--line); }
 #ins { inset: auto auto 76px 50%; translate: -50% 0; }
+/* The toolbar docks to any edge: data-dock on <html>, cycled by the toolbar's last button and remembered per browser. Bottom is the default above. */
+[data-dock=top] #tools { top: 14px; bottom: auto; }
+[data-dock=top] #bar { top: 66px; }
+[data-dock=top] #ins { inset: 66px auto auto 50%; }
+:is([data-dock=left], [data-dock=right]) #tools { top: 50%; bottom: auto; transform: translateY(-50%); flex-direction: column; max-height: calc(100vh - 24px); }
+:is([data-dock=left], [data-dock=right]) #tools i { width: 20px; height: 1px; margin: 5px 0; }
+[data-dock=left] #tools { left: 14px; }
+[data-dock=left] #ins { inset: 50% auto auto 68px; translate: 0 -50%; }
+[data-dock=right] #tools { left: auto; right: 14px; }
+[data-dock=right] #ins { inset: 50% 68px auto auto; translate: 0 -50%; }
+[data-dock=right] #panel { right: 68px; }
 #boardMenu { inset: 58px auto auto 14px; }
 #alignMenu { inset: 106px auto auto 50%; translate: -50% 0; }
 #boardBtn { position: fixed; top: 14px; left: 14px; max-width: 240px; padding: 7px 12px; border-radius: 10px; font-size: 13px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -200,6 +212,10 @@ dialog input { width: 100%; font: inherit; padding: 9px 11px; border-radius: 9px
 dialog menu { display: flex; flex-direction: row-reverse; gap: 8px; margin: 14px 0 0; padding: 0; }
 dialog menu button { padding: 7px 16px; border-radius: 9px; background: color-mix(in srgb, var(--ink) 8%, transparent); }
 dialog menu button[value=ok] { background: var(--accent); color: #fff; }
+
+/* ?shot: the print layout on screen, for the headless screenshot behind `cli.js shot` */
+.shot :is(#bar, #corner, #tools, #panel, #boardBtn, #status, #marq, .guide, .selbox, .rz, .ep, .noprint) { display: none !important; }
+.shot #stage { background: #fff; }
 
 @media print {
   :root { color-scheme: light; --ck: #9b2393; --cs: #c41a16; --cn: #1c00cf; --bg: #f5f5f7; --card: #fff; --ink: #1d1d1f; --sub: #86868b; --line: rgba(0,0,0,.1); --shadow: 0 1px 2px rgba(0,0,0,.06); }
