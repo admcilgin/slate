@@ -22,6 +22,8 @@ Run every command as `node {{SLATE}}/cli.js <command>`.
 | `rm <board> <id> [id…]` | Delete items |
 | `rm-board <board>` | Delete a whole board (only when the user asks) |
 | `asset <file>` | Copy an image or video into Slate. Prints the `src` to use in an `image` or `video` item |
+| `cards <board>` | Every kanban card with its column, title and detail (lines after the first) |
+| `move <board> "<card>" "<column>"` | Move a kanban card, matched by title, to another column. `--note="…"` adds a line to its detail |
 | `selection` | The items the user has selected in the open tab: what "this" or "these" refers to |
 | `wait <board> --timeout=<s>` | Block until the user changes the board, then print what was added, changed and removed, and what is selected |
 | `shot <board> [id]` | Write a PNG of the board (or of one item, or a frame with its contents) and print its path, for you to look at |
@@ -41,6 +43,7 @@ For large or quote-heavy JSON, pass `-` and pipe it in: `node {{SLATE}}/cli.js a
 
 7. **Look at the picture when the numbers are not enough.** `shot` then read the PNG: to understand a hand-drawn sketch or wireframe (freehand strokes are unreadable as JSON), and to check a layout you just wrote for overlaps. Needs a Chromium-family browser installed.
 8. **Let the user point.** If they say "this" or "the selected ones", run `selection`. If they want to steer you from the board ("watch the board", "I'll mark what to change"), loop on `wait <board> --timeout=<s>`: act on what they added or changed, then wait again.
+9. **Work a kanban like a task queue.** When the user asks you to take tasks from their board: `cards` to read them (the detail is the brief), `move` the card to the in-progress column before you start, and to the done column only once the work is finished and checked. If you get stuck, leave the card and add `--note="<what is blocking>"`. Use `move`, not `set` on `columns`.
 
 ## Rules
 

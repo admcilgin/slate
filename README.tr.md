@@ -6,7 +6,9 @@ Yapay zekâ ajanlarının okuyup yazabildiği, bilgisayarınızda çalışan bir
 
 ![Slate demo panosu: metinler, yapışkan notlar, uyarı kutuları, çerçeve içinde bir akış diyagramı, çizgiler, işaretler ve açıklamalı bir ekran görüntüsü](docs/board.jpg)
 
-[Bir dakikalık tanıtım videosunu izle](docs/slate-demo.mp4) (sessiz, İngilizce yazılı).
+[![İki dakikalık tanıtım: ajan seçilen listeyi kanbana çeviriyor, bir kartı Done'a kadar götürüyor ve elle çizilmiş bir eskizden form yapıyor](docs/demo-poster.jpg)](docs/slate-demo.mp4)
+
+[▶ İki dakikalık tanıtım videosunu izle](docs/slate-demo.mp4) (sessiz, İngilizce yazılı).
 
 Slate kendi bilgisayarınızda çalışır, her panoyu düz bir JSON dosyası olarak saklar ve hiçbir bağımlılığı yoktur. Kendiniz çizebilir ya da bir kod ajanına klasörü gösterip bir plan, akış veya yol haritası çizmesini isteyebilirsiniz. Ajanın yazdığı her şey açık panoda hemen görünür.
 
@@ -40,7 +42,7 @@ http://localhost:4747 adresini açın. Başka bir port için: `PORT=5000 node se
 **Veri ve planlama**
 - Metrik kartları, tablolar; çubuk, çizgi ve pasta grafikler
 - Bitiş tarihli görev listeleri ve panodaki tüm açık görevleri gösteren panel
-- Kartları sütunlar arasında sürüklenen kanban panoları
+- Kartları sütunlar arasında sürüklenen kanban panoları; kartın başlığının altına detay satırları yazılabilir (Shift+Enter)
 - Zaman çizelgeleri
 
 **Medya ve linkler**
@@ -115,7 +117,11 @@ node cli.js shot demo                   # ajanın bakabileceği bir PNG: sizin �
 node cli.js shot demo <çerçeve-id>      # tek bir çerçeve, içindekilerle
 node cli.js pdf demo                    # vektör PDF, yazdırma penceresi olmadan
 node cli.js html demo                   # birine göndermek için tek dosyalık HTML
+node cli.js cards demo                  # tüm kanban kartları, sütunu ve detayıyla
+node cli.js move demo "Export to PNG" Doing   # kartı üstlen; bitince Done'a taşı
 ```
+
+Kanban, ajan için bir iş kuyruğu olarak çalışır: kartı yazın, ne istediğinizi detay satırlarına koyun ve ajandan panodaki işleri yapmasını isteyin. Başlarken kartı "yapılıyor" sütununuza, iş bitince "bitti" sütununuza taşır.
 
 `wait` ile ajana yazmadan yön verirsiniz: ekran görüntüsünde bir yeri yuvarlak içine alın, ne değişeceğini söyleyen bir not bırakın, ajan onu alır. `shot` ve `pdf`, bilgisayarınızda zaten kurulu olan Chrome, Chromium, Edge ya da Brave'i kullanır.
 
@@ -150,3 +156,7 @@ Yaklaşık 1.900 satır, derleme adımı yok.
 - `server.js` uygulamayı sunar, pano dosyalarını okuyup yazar ve canlı yenileme olaylarını gönderir.
 - `public/app.js` tuvalin kendisidir. Her öğe türünün `R` içinde bir çizicisi, `DEF` içinde varsayılanları vardır.
 - `demo.json` ilk açılışta kopyalanan tanıtım panosudur.
+
+## Lisans
+
+[MIT](LICENSE). Kişisel ya da ticari her işte serbestçe kullanabilir, değiştirebilir ve dağıtabilirsiniz. Telif bildirimini korumanız yeterli.

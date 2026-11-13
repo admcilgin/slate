@@ -21,6 +21,9 @@ const HELP = `Slate CLI. Boards live in ${L.BOARDS}
   rm <board> <id> [id…]         delete items
   rm-board <board>              delete a board
   asset <file>                  copy an image or video into Slate; prints the src to use in an item
+  cards <board>                 every kanban card with its column and detail, one per line
+  move <board> <card> <column>  move a kanban card (matched by its title) to another column; --note=<text> adds a line
+                                to its detail, --kanban=<id> picks the kanban when a board has several
   selection                     the items the user has selected in the open tab ("this one")
   wait <board>                  block until the user changes the board, then print what changed and what is selected
                                 (--quiet=3 seconds of calm before reporting, --timeout=<seconds> to give up)
@@ -54,6 +57,16 @@ function input(arg) {
 
 function server() {
   try { const s = JSON.parse(fs.readFileSync(L.RUN, 'utf8')); process.kill(s.pid, 0); return s; } catch { return null; }
+}
+
+// Kanban cards are strings: the first line is the title, further lines the detail.
+const kanbans = b => b.items.filter(i => i.type === 'kanban' && Array.isArray(i.columns));
+// The one entry whose label is `q` (case-insensitive), or failing that the only one containing it.
+function pick(list, q, label, what) {
+  const lc = s => String(s).toLowerCase().trim(), exact = list.filter(x => lc(label(x)) === lc(q));
+  const hits = exact.length ? exact : list.filter(x => lc(label(x)).includes(lc(q)));
+  if (hits.length !== 1) die(`${hits.length ? 'more than one' : 'no'} ${what} matches "${q}". Choices: ${list.map(label).join(' | ') || 'none'}`);
+  return hits[0];
 }
 
 const urlFor = (s, n) => s ? `${s.url}/#${encodeURIComponent(n)}` : null;
@@ -186,6 +199,27 @@ const commands = {
     const file = Date.now().toString(36) + '-' + path.basename(src).replace(/[^\w.-]/g, '_');
     fs.copyFileSync(src, path.join(L.ASSETS, file));
     out({ src: '/assets/' + file });
+  },
+
+  cards() {
+    const n = name(pos[0]);
+    out(kanbans(L.read(n)).flatMap(k => k.columns.flatMap(col => (col.cards || []).filter(Boolean).map(c => {
+      const [card, ...detail] = String(c).split('\n');
+      return JSON.stringify({ kanban: k.id, column: col.title, card, ...(detail.length && { detail: detail.join('\n') }) });
+    }))).join('\n') || '(no kanban cards)');
+  },
+
+  move() {
+    if (!pos[1] || !pos[2]) die('usage: move <board> <card> <column> [--note=<text>] [--kanban=<id>]');
+    const n = name(pos[0]), b = L.read(n); // read here, write a few lines down: the window for clobbering the user's own edit is milliseconds
+    const all = kanbans(b).filter(k => !opt('kanban') || k.id === opt('kanban'))
+      .flatMap(k => k.columns.flatMap(col => (col.cards || []).map((c, at) => ({ k, col, at, title: String(c).split('\n')[0] })))).filter(x => x.title);
+    const hit = pick(all, pos[1], x => x.title, 'card'), to = pick(hit.k.columns, pos[2], c => c.title, 'column');
+    const card = hit.col.cards[hit.at] + (opt('note') ? '\n' + opt('note') : '');
+    if (to === hit.col) hit.col.cards[hit.at] = card; // same column: only the note changes, the card keeps its place
+    else { hit.col.cards.splice(hit.at, 1); (to.cards ??= []).push(card); }
+    L.write(n, b);
+    out({ board: n, kanban: hit.k.id, card: hit.title, from: hit.col.title, to: to.title });
   },
 
   selection() {

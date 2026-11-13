@@ -281,7 +281,9 @@ const R = {
       const el = h('div', { className: 'kcol' }, bind(col, 'title', 'title', ed));
       col.cards.forEach((_, n) => {
         const k = bind(col.cards, n, 'kcard', ed);
-        if (ed) k.onkeydown = ev => {
+        const [head, ...more] = String(col.cards[n]).split('\n'); // first line is the card's title, the rest its detail
+        if (!ed && more.length) k.replaceChildren(head, h('div', { className: 'kdetail', textContent: more.join('\n') }));
+        if (ed) k.onkeydown = ev => { // Enter adds a card; Shift+Enter breaks the line, which starts the detail
           if (ev.key === 'Enter' && !ev.shiftKey) { ev.preventDefault(); col.cards.splice(n + 1, 0, ''); redo(); focus(c, n + 1); dirty(); }
           else if (ev.key === 'Backspace' && !col.cards[n]) { ev.preventDefault(); col.cards.splice(n, 1); redo(); focus(c, Math.max(0, n - 1)); dirty(); }
         };

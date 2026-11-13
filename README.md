@@ -6,7 +6,9 @@ A local whiteboard that AI agents can read and write.
 
 ![The Slate demo board: text, sticky notes, callouts, a flowchart in a frame, lines, pins and an annotated screenshot](docs/board.jpg)
 
-[Watch the one-minute demo video](docs/slate-demo.mp4) (silent).
+[![Two-minute demo: an agent turns a selected list into a kanban, works a card through to Done, and builds a form from a hand-drawn sketch](docs/demo-poster.jpg)](docs/slate-demo.mp4)
+
+[▶ Watch the two-minute demo video](docs/slate-demo.mp4) (silent).
 
 Slate runs on your machine, stores every board as a plain JSON file, and has no dependencies. Draw on it yourself, or point a coding agent at the folder and ask it to lay out a plan, a flow or a roadmap. Whatever the agent writes appears on the open board straight away.
 
@@ -40,7 +42,7 @@ The first run opens a board called `demo` that shows every kind of item.
 **Data and planning**
 - Metric cards, tables, and bar, line and pie charts
 - Task lists with due dates, plus a panel listing every open task on the board
-- Kanban boards with cards you drag between columns
+- Kanban boards with cards you drag between columns; a card can carry detail lines under its title (Shift+Enter)
 - Timelines
 
 **Media and links**
@@ -115,7 +117,11 @@ node cli.js shot demo                   # a PNG the agent can look at: your sket
 node cli.js shot demo <frame-id>        # one frame with its contents
 node cli.js pdf demo                    # vector PDF, no print dialog
 node cli.js html demo                   # one self-contained HTML file to send to someone
+node cli.js cards demo                  # every kanban card with its column and detail
+node cli.js move demo "Export to PNG" Doing   # take a card; later move it to Done
 ```
+
+A kanban works as a task queue for an agent: write a card with the brief in its detail lines, and ask the agent to work the board. It moves the card to your in-progress column when it starts and to done when the work is finished.
 
 With `wait` you can steer an agent without typing to it: circle a part of a screenshot, drop a note that says what to change, and the agent picks it up. `shot` and `pdf` use the Chrome, Chromium, Edge or Brave already on your machine.
 
@@ -150,3 +156,7 @@ About 1,900 lines, no build step.
 - `server.js` serves the app, reads and writes board files, and pushes live-reload events.
 - `public/app.js` is the canvas. Each item type has one renderer in `R` and its defaults in `DEF`.
 - `demo.json` is the showcase board copied on first run.
+
+## License
+
+[MIT](LICENSE). Free to use, change and ship, for personal or commercial work. Keep the copyright notice.

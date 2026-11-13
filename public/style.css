@@ -115,6 +115,7 @@ path.hit { stroke: transparent; stroke-width: 18; pointer-events: stroke; }
 .kcol .title { margin: 2px 4px 2px; color: var(--sub); font-size: .86em; min-height: 1.4em; }
 .kcard { margin-top: 6px; padding: 7px 9px; border-radius: 8px; background: var(--card); border: .5px solid var(--line); font-size: .93em; white-space: pre-wrap; overflow-wrap: anywhere; min-height: 1.4em; box-sizing: content-box; }
 .kcard[draggable=true] { cursor: grab; }
+.kdetail { margin-top: 3px; color: var(--sub); font-size: .9em; }
 .editing .kcard:empty::before { content: 'Card'; }
 .kcol button { margin-top: 6px; padding: 4px 8px; border-radius: 6px; color: var(--sub); font-size: 12px; }
 .kcol button:hover { color: var(--ink); }
