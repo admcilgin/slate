@@ -905,7 +905,7 @@ stage.addEventListener('wheel', e => {
 const typing = e => e.target.closest?.('input,textarea,[contenteditable]');
 
 addEventListener('keydown', e => {
-  if ($('#ask').open || $('#find').open) return;
+  if (document.querySelector('dialog[open]')) return; // ask, find, help, folder
   if (e.key === 'Escape') { if (editing) stopEdit(); else { sel.clear(); setTool('select'); } return; }
   if (typing(e)) return;
   const m = e.metaKey || e.ctrlKey, k = e.key.toLowerCase();
@@ -1059,6 +1059,12 @@ $('#findInput').oninput = findRender;
 $('#findInput').onkeydown = e => { if (e.key === 'Enter') $('#findList button')?.click(); };
 $('#find').onclick = e => { if (e.target === $('#find')) $('#find').close(); }; // click outside closes
 $('#findBtn').onclick = openFind;
+// How it works: the install line points at wherever this page is served from.
+document.querySelectorAll('code.install').forEach(c => { c.textContent = `curl -fsSL ${location.origin}/install.sh | sh`; });
+const help = () => $('#help').showModal();
+$('#helpBtn').onclick = help;
+document.querySelectorAll('.howBtn').forEach(b => { b.onclick = help; });
+$('#help').onclick = e => { if (e.target === $('#help')) $('#help').close(); }; // click outside closes
 $('#fitBtn').onclick = fit;
 $('#alignMenu').onclick = e => { const k = e.target.dataset.al; if (k) { $('#alignMenu').hidePopover(); align(k); } };
 

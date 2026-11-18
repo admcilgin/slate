@@ -136,6 +136,13 @@
     await scanAssets(); await changes();
     await idb('readwrite', s => s.put(dir, 'dir')).catch(() => {});
     open(); watch();
+    const f = document.getElementById('helpFolder'), change = document.createElement('button');
+    change.textContent = 'Change folder';
+    change.onclick = async () => { // the next visit opens the new folder; a reload starts clean
+      try { const next = await showDirectoryPicker({ id: 'slate', mode: 'readwrite' }); await idb('readwrite', s => s.put(next, 'dir')); location.reload(); } catch {}
+    };
+    f.replaceChildren('This tab keeps boards in the folder “', Object.assign(document.createElement('b'), { textContent: dir.name }), '”.', change);
+    f.hidden = false;
     beat(); setInterval(beat, 30000);
   }
   // Tells `cli.js status` this folder is open on the web, and where, so agents can hand out the link.
@@ -145,7 +152,6 @@
   const d = document.getElementById('folder'), note = document.getElementById('folderNote');
   const go = document.getElementById('folderGo'), other = document.getElementById('folderOther');
   document.getElementById('status').textContent = 'Not saved. Is the folder still there?';
-  document.getElementById('folderCli').textContent = `curl -fsSL ${location.origin}/install.sh | sh`;
   d.oncancel = e => e.preventDefault(); // nothing works without a folder
   function ask(saved) {
     if (!window.showDirectoryPicker) {

@@ -18,6 +18,7 @@
   <button id="shareBtn" class="glass" title="Save this board as one HTML file that opens in any browser, to send to someone">Share</button>
   <button id="fitBtn" class="glass" title="Fit everything, or the selection, on screen (F)">Fit</button>
   <button id="zoom" class="glass" title="Reset zoom">100%</button>
+  <button id="helpBtn" class="glass" title="How Slate works" aria-label="How Slate works">?</button>
 </div>
 <aside id="panel" class="glass" hidden></aside>
 <button id="boardBtn" class="glass" popovertarget="boardMenu" title="Boards">main</button>
@@ -79,6 +80,19 @@
   </form>
 </dialog>
 
+<dialog id="help" class="glass">
+  <label>How Slate works</label>
+  <p>Each board is a file on your computer. You draw here; your AI agent (Claude Code, Codex or Copilot) reads and edits the same file, and its changes appear here within a second. Nothing is uploaded and there is no account.</p>
+  <ol>
+    <li><b>Install the <code>slate</code> command</b>, once. It needs <a href="https://nodejs.org" target="_blank" rel="noopener">Node.js</a> 18 or newer, keeps your boards in <code>~/Slate</code> and teaches your agents about Slate. Run it again to update.<code class="install"></code></li>
+    <li><b>Open your boards.</b> On the web, in Chrome, Edge or Brave, pick the <code>Slate</code> folder in your home folder. Or run <code>slate start</code> for a local copy at <code>localhost:4747</code>.</li>
+    <li><b>Ask your agent.</b> "Put the login flow on my Slate board." "Take the next card from my kanban." Select items and say "these": your agent sees the selection.</li>
+  </ol>
+  <p id="helpFolder" hidden></p>
+  <p class="sub"><code>slate status</code> shows where your boards are, <code>slate</code> lists every command. <kbd>⌘K</kbd> searches all boards; hover a tool for its key.</p>
+  <form method="dialog"><menu><button value="ok">Got it</button></menu></form>
+</dialog>
+
 <dialog id="find" class="glass">
   <input id="findInput" placeholder="Search all boards" aria-label="Search all boards" autocomplete="off" spellcheck="false">
   <div id="findList"></div>
@@ -86,9 +100,9 @@
 
 <dialog id="folder" class="glass">
   <label>Open your boards folder</label>
-  <p id="folderNote">Slate keeps each board as a file in a folder on this computer, where your agents can read and edit it too. Nothing is uploaded. Pick your Slate <b>data</b> folder, or any folder to start fresh. If it is not Slate's own, tell your agent where it is.</p>
-  <p>Agents use the <code>slate</code> command. To install it:<code id="folderCli"></code></p>
-  <menu><button id="folderGo" value="ok">Choose folder</button><button id="folderOther" hidden>Choose another</button></menu>
+  <p id="folderNote">Slate keeps each board as a file on this computer, where your AI agent can read and edit it too. Nothing is uploaded and there is no account. Pick the <b>Slate</b> folder in your home folder, or any folder to start fresh.</p>
+  <p>No <code>slate</code> command yet? Install it first, then pick <code>~/Slate</code>:<code class="install"></code></p>
+  <menu><button id="folderGo" value="ok">Choose folder</button><button id="folderOther" hidden>Choose another</button><button class="howBtn">How it works</button></menu>
 </dialog>
 
 <script src="folder.js"></script>

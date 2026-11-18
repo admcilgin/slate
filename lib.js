@@ -63,6 +63,6 @@ fs.mkdirSync(BOARDS, { recursive: true });
 const legacy = path.join(DATA, 'board.json'); // single-board layout from v0.1
 if (fs.existsSync(legacy) && !fs.existsSync(file('main'))) fs.renameSync(legacy, file('main'));
 const demo = path.join(__dirname, 'demo.json');
-if (!list().length) !picked && fs.existsSync(demo) ? fs.copyFileSync(demo, file('demo')) : fs.writeFileSync(file('main'), EMPTY); // first run: showcase board
+if (!list().length) fs.existsSync(demo) ? fs.copyFileSync(demo, file('demo')) : fs.writeFileSync(file('main'), EMPTY); // first run: showcase board
 
 module.exports = { PICK, isDir, dataIn, picked, DATA, ASSETS, BOARDS, RUN, WEB, CURSOR, MIME, NAME, EMPTY, TYPES, file, list, format, read, write, exportHTML };

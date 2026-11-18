@@ -12,22 +12,30 @@ A local whiteboard that AI agents can read and write.
 
 Slate runs on your machine, stores every board as a plain JSON file, and has no dependencies. Draw on it yourself, or point a coding agent at the folder and ask it to lay out a plan, a flow or a roadmap. Whatever the agent writes appears on the open board straight away.
 
-## Run it
+## Get started
 
-Needs [Node.js](https://nodejs.org) 18 or newer. One line installs Slate in `~/.slate`, puts the `slate` command on your PATH and teaches your agents about it:
+**1. Install the `slate` command.** It needs [Node.js](https://nodejs.org) 18 or newer. One line puts Slate in `~/.slate`, your boards in `~/Slate`, the `slate` command on your PATH, and teaches Claude Code, Codex and Copilot about it:
 
 ```sh
 curl -fsSL https://slate.appusta.com/install.sh | sh
-slate start
 ```
 
-Run the same line again to update; your boards stay. Or work from a clone: `git clone https://github.com/admcilgin/slate.git`, then `npm link` inside it for the `slate` command, and `node server.js`.
+Run the same line again to update; your boards stay. Open a new terminal afterwards so `slate` is found.
 
-Open http://localhost:4747. To use another port: `PORT=5000 node server.js`.
+**2. Open your boards.** Either way you see the same files:
 
-The first run opens a board called `demo` that shows every kind of item.
+- **On the web:** open [slate.appusta.com](https://slate.appusta.com) in Chrome, Edge or Brave and pick the `Slate` folder in your home folder. The browser asks once. Nothing is uploaded and there is no account; the page reads and writes the folder on your computer.
+- **Locally:** `slate start`, then open http://localhost:4747. Works in every browser.
 
-**Without Node.** Put the `public/` folder on any static host (it needs HTTPS). Opened from anywhere but localhost, Slate asks for a folder on your computer and keeps the boards there: pick your Slate `data` folder to share it with the CLI and your agents, or an empty one to start fresh. Nothing is uploaded and there is no account. If you pick another folder, run `slate use <that folder>` once so the CLI, the local server and your agents use it too. This needs Chrome, Edge or Brave on a computer; Safari and Firefox cannot open a folder.
+The first board, `demo`, shows every kind of item. The **?** button in the top-right corner explains all this inside the app.
+
+**3. Ask your agent.** From any project: "put the login flow on my Slate board", "take the next card from my kanban", or select a few items and say "turn these into a task list". What the agent writes shows up on the open board within a second.
+
+### Other ways to run it
+
+- **From a clone:** `git clone https://github.com/admcilgin/slate.git`, then `npm link` inside it for the `slate` command, and `node server.js` (or `slate start`). Boards live in the clone's `data/`. Another port: `PORT=5000 node server.js`.
+- **Your own web copy:** put the `public/` folder on any static host with HTTPS. Opened from anywhere but localhost, Slate asks for a folder and keeps the boards there.
+- **Another folder:** if you pick a folder other than `~/Slate` on the web, run `slate use <that folder>` once so the CLI, the local server and your agents use it too. `slate status` always says where your boards are.
 
 ## What you can put on a board
 
@@ -142,12 +150,12 @@ It installs for each agent it finds on your machine:
 | Codex | `~/.codex/skills/slate` (or `$CODEX_HOME/skills/slate`) |
 | GitHub Copilot (CLI, VS Code agent mode) | `~/.copilot/skills/slate` |
 
-An agent you install later is picked up by running `install` again; run it again after `git pull` too, so the skill knows the new commands. After that you can say "put this flow on my Slate board" from any repo.
+The installer does this for you. An agent you install later is picked up by running `slate install` again. After that you can say "put this flow on my Slate board" from any repo.
 
 ## Your data
 
-- Boards live in `data/boards/`, uploaded media in `data/assets/`. Both are git-ignored, so `git pull` never touches your boards and they are not shared between computers.
-- To move boards to another computer, copy the `data/` folder.
+- Boards live in `~/Slate/boards/` (in `data/boards/` for a clone), uploaded media next to them in `assets/`. Updating Slate never touches them, and they are not shared between computers. `slate status` shows the folder.
+- To move boards to another computer, copy that folder and run `slate use <folder>` there.
 - The server listens on `127.0.0.1` only and rejects requests from other sites.
 - Nothing is sent anywhere. Embeds and remote images load from their own hosts when you add them.
 

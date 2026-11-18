@@ -12,22 +12,30 @@ Yapay zekâ ajanlarının okuyup yazabildiği, bilgisayarınızda çalışan bir
 
 Slate kendi bilgisayarınızda çalışır, her panoyu düz bir JSON dosyası olarak saklar ve hiçbir bağımlılığı yoktur. Kendiniz çizebilir ya da bir kod ajanına klasörü gösterip bir plan, akış veya yol haritası çizmesini isteyebilirsiniz. Ajanın yazdığı her şey açık panoda hemen görünür.
 
-## Çalıştırma
+## Başlarken
 
-[Node.js](https://nodejs.org) 18 veya üstü gerekir. Tek satır Slate'i `~/.slate` klasörüne kurar, `slate` komutunu PATH'inize ekler ve ajanlarınıza tanıtır:
+**1. `slate` komutunu kurun.** [Node.js](https://nodejs.org) 18 veya üstü gerekir. Tek satır Slate'i `~/.slate` klasörüne, panolarınızı `~/Slate` klasörüne koyar, `slate` komutunu PATH'inize ekler ve Claude Code, Codex ve Copilot'a Slate'i tanıtır:
 
 ```sh
 curl -fsSL https://slate.appusta.com/install.sh | sh
-slate start
 ```
 
-Güncellemek için aynı satırı tekrar çalıştırın; panolarınız yerinde kalır. Ya da bir klondan çalışın: `git clone https://github.com/admcilgin/slate.git`, içinde `slate` komutu için `npm link`, sonra `node server.js`.
+Güncellemek için aynı satırı tekrar çalıştırın; panolarınız yerinde kalır. Kurulumdan sonra `slate` komutunun bulunması için yeni bir terminal açın.
 
-http://localhost:4747 adresini açın. Başka bir port için: `PORT=5000 node server.js`.
+**2. Panolarınızı açın.** İki yol da aynı dosyaları gösterir:
 
-İlk açılışta, tüm öğe türlerini gösteren `demo` adlı bir pano gelir.
+- **Web'de:** [slate.appusta.com](https://slate.appusta.com) adresini Chrome, Edge veya Brave'de açın ve ana klasörünüzdeki `Slate` klasörünü seçin. Tarayıcı bir kez izin ister. Hiçbir şey yüklenmez, hesap yoktur; sayfa bilgisayarınızdaki klasörü okuyup yazar.
+- **Yerelde:** `slate start`, sonra http://localhost:4747 adresini açın. Her tarayıcıda çalışır.
 
-**Node olmadan.** `public/` klasörünü herhangi bir statik barındırmaya koyun (HTTPS gerekir). Slate localhost dışında bir adresten açılınca bilgisayarınızdan bir klasör ister ve panoları orada tutar: CLI ve ajanlarınızla paylaşmak için Slate'in `data` klasörünü, sıfırdan başlamak için boş bir klasör seçin. Hiçbir şey yüklenmez, hesap da yoktur. Başka bir klasör seçerseniz CLI, yerel sunucu ve ajanlarınız da kullansın diye bir kez `slate use <o klasör>` çalıştırın. Bilgisayarda Chrome, Edge veya Brave gerekir; Safari ve Firefox klasör açamaz.
+İlk pano olan `demo`, tüm öğe türlerini gösterir. Sağ üst köşedeki **?** butonu bunların hepsini uygulamanın içinde anlatır.
+
+**3. Ajanınıza söyleyin.** Herhangi bir projeden: "giriş akışını Slate panoma koy", "kanbandan sıradaki kartı al" ya da birkaç öğe seçip "bunları görev listesi yap". Ajanın yazdığı, açık panoda bir saniye içinde görünür.
+
+### Başka çalıştırma yolları
+
+- **Bir klondan:** `git clone https://github.com/admcilgin/slate.git`, içinde `slate` komutu için `npm link`, sonra `node server.js` (ya da `slate start`). Panolar klonun `data/` klasöründe durur. Başka bir port için: `PORT=5000 node server.js`.
+- **Kendi web kopyanız:** `public/` klasörünü HTTPS'li herhangi bir statik barındırmaya koyun. Localhost dışından açılınca Slate bir klasör ister ve panoları orada tutar.
+- **Başka bir klasör:** Web'de `~/Slate` dışında bir klasör seçerseniz, CLI, yerel sunucu ve ajanlarınız da kullansın diye bir kez `slate use <o klasör>` çalıştırın. `slate status` panolarınızın nerede olduğunu her zaman söyler.
 
 ## Panoya neler konabilir
 
@@ -142,12 +150,12 @@ Bilgisayarınızda bulduğu her ajan için kurar:
 | Codex | `~/.codex/skills/slate` (ya da `$CODEX_HOME/skills/slate`) |
 | GitHub Copilot (CLI, VS Code agent modu) | `~/.copilot/skills/slate` |
 
-Sonradan kurduğunuz bir ajan için `install`'u yeniden çalıştırın; `git pull`'dan sonra da çalıştırın ki skill yeni komutları bilsin. Bundan sonra herhangi bir repodan "bu akışı Slate panoma koy" diyebilirsiniz.
+Kurulum bunu sizin için yapar. Sonradan kurduğunuz bir ajan için `slate install`'u yeniden çalıştırın. Bundan sonra herhangi bir repodan "bu akışı Slate panoma koy" diyebilirsiniz.
 
 ## Verileriniz
 
-- Panolar `data/boards/`, yüklenen medya `data/assets/` klasöründedir. İkisi de git tarafından yok sayılır; yani `git pull` panolarınıza dokunmaz ve panolar bilgisayarlar arasında paylaşılmaz.
-- Panoları başka bir bilgisayara taşımak için `data/` klasörünü kopyalayın.
+- Panolar `~/Slate/boards/` (bir klonda `data/boards/`), yüklenen medya yanlarındaki `assets/` klasöründedir. Slate'i güncellemek onlara dokunmaz ve panolar bilgisayarlar arasında paylaşılmaz. `slate status` klasörü gösterir.
+- Panoları başka bir bilgisayara taşımak için o klasörü kopyalayın ve orada `slate use <klasör>` çalıştırın.
 - Sunucu yalnızca `127.0.0.1` üzerinde dinler ve başka sitelerden gelen istekleri reddeder.
 - Hiçbir yere veri gönderilmez. Gömülü içerikler ve uzaktaki görseller, eklediğinizde kendi sunucularından yüklenir.
 
