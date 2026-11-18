@@ -4,3 +4,4 @@ node_modules
 # your boards and uploaded media stay on your machine
 data/
 .wrangler
+.slate-data

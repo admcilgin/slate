@@ -12,7 +12,9 @@ Slate is a local whiteboard. Run it with `node server.js` and open http://localh
 ## Two ways in
 
 - **Inside this folder:** edit `data/boards/<name>.json` directly, following the rules below.
-- **From anywhere else:** use the CLI, `node <slate>/cli.js`. It needs no browser and no running server, validates what you write, and keeps the file format right. Run it with no arguments for the command list: `status`, `boards`, `show`, `new`, `add`, `set`, `rm`, `rm-board`, `asset`, `cards`, `move`, `selection`, `wait`, `shot`, `pdf`, `html`, `start`, `stop`.
+- **From anywhere else:** use the CLI, `node <slate>/cli.js`. It needs no browser and no running server, validates what you write, and keeps the file format right. Run it with no arguments for the command list: `status`, `boards`, `show`, `new`, `add`, `set`, `rm`, `rm-board`, `asset`, `cards`, `move`, `selection`, `wait`, `shot`, `pdf`, `html`, `use`, `start`, `stop`.
+
+Boards live in `data/` unless the user keeps them in a folder of their own, typically one they picked on the web copy: `cli.js use <folder>` saves that choice in `.slate-data` (`use default` goes back), `SLATE_DATA=<folder>` overrides it for one run, and the server follows it too. A folder with `boards/` in it is used as is; one with `data/boards/` uses its `data/`.
 
 A running server records its port in `data/.server.json` (`{port, pid, url}`); `cli.js status` reports it, along with where the boards are. A tab of the static web copy (see `public/folder.js`) with this folder open writes `data/.web.json` (`{url, at}`) every 30 s; `status` shows it under `web`, with `open` true if it checked in within 90 s. The default is http://localhost:4747, changed with `PORT=`. You only need the server so a human can look at the board.
 

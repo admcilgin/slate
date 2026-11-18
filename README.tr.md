@@ -26,7 +26,7 @@ http://localhost:4747 adresini açın. Başka bir port için: `PORT=5000 node se
 
 İlk açılışta, tüm öğe türlerini gösteren `demo` adlı bir pano gelir.
 
-**Node olmadan.** `public/` klasörünü herhangi bir statik barındırmaya koyun (HTTPS gerekir). Slate localhost dışında bir adresten açılınca bilgisayarınızdan bir klasör ister ve panoları orada tutar: CLI ve ajanlarınızla paylaşmak için Slate'in `data` klasörünü, sıfırdan başlamak için boş bir klasör seçin. Hiçbir şey yüklenmez, hesap da yoktur. Bilgisayarda Chrome, Edge veya Brave gerekir; Safari ve Firefox klasör açamaz.
+**Node olmadan.** `public/` klasörünü herhangi bir statik barındırmaya koyun (HTTPS gerekir). Slate localhost dışında bir adresten açılınca bilgisayarınızdan bir klasör ister ve panoları orada tutar: CLI ve ajanlarınızla paylaşmak için Slate'in `data` klasörünü, sıfırdan başlamak için boş bir klasör seçin. Hiçbir şey yüklenmez, hesap da yoktur. Başka bir klasör seçerseniz CLI, yerel sunucu ve ajanlarınız da kullansın diye bir kez `node cli.js use <o klasör>` çalıştırın. Bilgisayarda Chrome, Edge veya Brave gerekir; Safari ve Firefox klasör açamaz.
 
 ## Panoya neler konabilir
 

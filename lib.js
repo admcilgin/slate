@@ -1,7 +1,12 @@
 // Shared by server.js and cli.js: where boards live and how they are read and written.
 const fs = require('fs'), path = require('path');
 
-const DATA = path.join(__dirname, 'data');
+// Boards live in data/ here, or in a folder of the user's own (the one they picked on the web copy): SLATE_DATA, or `cli.js use <folder>`.
+const PICK = path.join(__dirname, '.slate-data');
+const isDir = d => fs.statSync(d, { throwIfNoEntry: false })?.isDirectory();
+const dataIn = d => !isDir(path.join(d, 'boards')) && isDir(path.join(d, 'data', 'boards')) ? path.join(d, 'data') : d; // same rule as public/folder.js
+const picked = process.env.SLATE_DATA || (fs.existsSync(PICK) ? fs.readFileSync(PICK, 'utf8').trim() : '');
+const DATA = picked ? dataIn(path.resolve(picked)) : path.join(__dirname, 'data');
 const ASSETS = path.join(DATA, 'assets');
 const BOARDS = path.join(DATA, 'boards');
 const RUN = path.join(DATA, '.server.json'); // written by a running server: { port, pid, url }
@@ -58,6 +63,6 @@ fs.mkdirSync(BOARDS, { recursive: true });
 const legacy = path.join(DATA, 'board.json'); // single-board layout from v0.1
 if (fs.existsSync(legacy) && !fs.existsSync(file('main'))) fs.renameSync(legacy, file('main'));
 const demo = path.join(__dirname, 'demo.json');
-if (!list().length) fs.existsSync(demo) ? fs.copyFileSync(demo, file('demo')) : fs.writeFileSync(file('main'), EMPTY); // first run: showcase board
+if (!list().length) !picked && fs.existsSync(demo) ? fs.copyFileSync(demo, file('demo')) : fs.writeFileSync(file('main'), EMPTY); // first run: showcase board
 
-module.exports = { DATA, ASSETS, BOARDS, RUN, WEB, CURSOR, MIME, NAME, EMPTY, TYPES, file, list, format, read, write, exportHTML };
+module.exports = { PICK, isDir, dataIn, picked, DATA, ASSETS, BOARDS, RUN, WEB, CURSOR, MIME, NAME, EMPTY, TYPES, file, list, format, read, write, exportHTML };

@@ -26,7 +26,7 @@ Open http://localhost:4747. To use another port: `PORT=5000 node server.js`.
 
 The first run opens a board called `demo` that shows every kind of item.
 
-**Without Node.** Put the `public/` folder on any static host (it needs HTTPS). Opened from anywhere but localhost, Slate asks for a folder on your computer and keeps the boards there: pick your Slate `data` folder to share it with the CLI and your agents, or an empty one to start fresh. Nothing is uploaded and there is no account. This needs Chrome, Edge or Brave on a computer; Safari and Firefox cannot open a folder.
+**Without Node.** Put the `public/` folder on any static host (it needs HTTPS). Opened from anywhere but localhost, Slate asks for a folder on your computer and keeps the boards there: pick your Slate `data` folder to share it with the CLI and your agents, or an empty one to start fresh. Nothing is uploaded and there is no account. If you pick another folder, run `node cli.js use <that folder>` once so the CLI, the local server and your agents use it too. This needs Chrome, Edge or Brave on a computer; Safari and Firefox cannot open a folder.
 
 ## What you can put on a board
 

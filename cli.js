@@ -30,6 +30,8 @@ const HELP = `Slate CLI. Boards live in ${L.BOARDS}
   shot <board> [id]             PNG of the board, or of one item or frame with its contents, to look at (--out=file)
   pdf <board> [id]              the same as a vector PDF (--out=file)
   html <board>                  the board as one self-contained HTML file to send to someone (--out=file)
+  use [folder|default]          keep boards in another folder (one the user picked on the web copy), or back in data/;
+                                with no folder, print where they are now. SLATE_DATA=<folder> does the same for one run
   install                       install the agent skill for Claude Code, Codex and GitHub Copilot (each one found here)
 
 JSON comes from the argument, or from stdin when it is "-" or missing.
@@ -106,7 +108,7 @@ function chrome(args) {
 function capture(kind, ext) {
   const n = name(pos[0]), id = pos[1] || '';
   if (id && !L.read(n).items.some(i => i.id === id)) die(`no item "${id}" on "${n}"`);
-  const file = path.resolve(opt('out') || path.join(kind === 'shot' ? path.join(L.DATA, 'shots') : '.', `${n}${id && '-' + id}.${ext}`));
+  const file = path.resolve(opt('out') || path.join(kind === 'shot' ? path.join(__dirname, 'data', 'shots') : '.', `${n}${id && '-' + id}.${ext}`));
   fs.mkdirSync(path.dirname(file), { recursive: true });
   fs.rmSync(file, { force: true });
   const s = up(), url = `${s.url}/?${kind}=${encodeURIComponent(id)}#${encodeURIComponent(n)}`;
@@ -277,6 +279,16 @@ const commands = {
     const n = name(pos[0]), file = path.resolve(opt('out') || `${n}.html`);
     fs.writeFileSync(file, L.exportHTML(n));
     out({ board: n, file, bytes: fs.statSync(file).size });
+  },
+
+  use() {
+    if (!pos[0]) return out({ dataDir: L.DATA, picked: L.picked || null });
+    const want = pos[0] === 'default' ? '' : path.resolve(pos[0]);
+    if (want && !L.isDir(want)) die('no such folder: ' + want);
+    want ? fs.writeFileSync(L.PICK, want + '\n') : fs.rmSync(L.PICK, { force: true });
+    const s = server(); // it serves the old folder, and after the switch `stop` could no longer find it
+    if (s) process.kill(s.pid);
+    out({ dataDir: want ? L.dataIn(want) : path.join(__dirname, 'data'), ...(s && { note: 'stopped the server; `start` serves the new folder' }) });
   },
 
   install() { // the three read the same SKILL.md format, each from its own folder

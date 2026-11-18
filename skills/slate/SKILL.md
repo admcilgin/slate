@@ -28,13 +28,14 @@ Run every command as `node {{SLATE}}/cli.js <command>`.
 | `wait <board> --timeout=<s>` | Block until the user changes the board, then print what was added, changed and removed, and what is selected |
 | `shot <board> [id]` | Write a PNG of the board (or of one item, or a frame with its contents) and print its path, for you to look at |
 | `pdf <board> [id]` / `html <board>` | Write a PDF, or one self-contained HTML file that opens without Slate, to give to someone. `--out=<file>` |
+| `use [folder\|default]` | Keep boards in another folder (one the user picked on the web copy), or back in Slate's own `data/`. With no folder, prints where they are |
 | `start` / `stop` | Start the server in the background and print the URL, or stop it |
 
 For large or quote-heavy JSON, pass `-` and pipe it in: `node {{SLATE}}/cli.js add main - < items.json`, or use a heredoc. Board names with spaces need quoting.
 
 ## How to work
 
-1. **Find the board.** Run `status`. If the user didn't name a board and there are several, ask which one, or create a new one with `new` when the work is clearly its own topic. A new project gets its own board: `new "<project name>"`, then one `add` with the starting layout (for example a title, a `kanban` for the work, `stat` cards for the numbers that matter and a `callout` for open decisions).
+1. **Find the board.** Run `status`. If the boards the user means are not listed, they may keep them in a folder of their own (picked on the web copy): ask for its path and run `use <folder>` once; every command then works there. If the user didn't name a board and there are several, ask which one, or create a new one with `new` when the work is clearly its own topic. A new project gets its own board: `new "<project name>"`, then one `add` with the starting layout (for example a title, a `kanban` for the work, `stat` cards for the numbers that matter and a `callout` for open decisions).
 2. **Look before you write.** Run `show <board>` so you know what is there and where the free space is. Each item has `x`, `y`, `w`, `h` in pixels; `x` grows right and `y` grows down.
 3. **Read the item reference once per session** before your first `add`: `{{SLATE}}/AGENTS.md` lists every item type, its fields, sizes, colours and layout tips. Only use types and fields documented there.
 4. **Add in one call.** Build the whole layout as an array and send it with a single `add`, giving every item explicit `x`/`y` so nothing overlaps. Items without a position are stacked below the existing content. Give items readable ids (`"login-api"`) so you can `set` them later.
