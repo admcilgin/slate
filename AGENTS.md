@@ -12,7 +12,7 @@ Slate is a local whiteboard. Run it with `node server.js` and open http://localh
 ## Two ways in
 
 - **Inside this folder:** edit `data/boards/<name>.json` directly, following the rules below.
-- **From anywhere else:** use the CLI, the `slate` command (`node <slate>/cli.js` where it is not on PATH). It needs no browser and no running server, validates what you write, and keeps the file format right. Run it with no arguments for the command list: `status`, `boards`, `show`, `new`, `add`, `set`, `rm`, `rm-board`, `asset`, `cards`, `move`, `selection`, `wait`, `shot`, `pdf`, `html`, `use`, `start`, `stop`.
+- **From anywhere else:** use the CLI, the `slate` command (`node <slate>/cli.js` where it is not on PATH). It needs no browser and no running server, validates what you write, and keeps the file format right. Run it with no arguments for the command list: `status`, `boards`, `show`, `new`, `add`, `set`, `rm`, `rm-board`, `asset`, `cards`, `move`, `selection`, `wait`, `shot`, `pdf`, `html`, `use`, `start`, `stop`, `install`, `uninstall`. Run `uninstall` only when the user asks to remove Slate.
 
 Boards live in `data/` unless the user keeps them in a folder of their own: the installer (`public/install.sh`) sets `~/Slate`, and the user may pick another on the web copy. `slate use <folder>` saves that choice in `.slate-data` (`use default` goes back), `SLATE_DATA=<folder>` overrides it for one run, and the server follows it too. A folder with `boards/` in it is used as is; one with `data/boards/` uses its `data/`.
 

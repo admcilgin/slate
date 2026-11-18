@@ -20,7 +20,7 @@ Slate runs on your machine, stores every board as a plain JSON file, and has no 
 curl -fsSL https://slate.appusta.com/install.sh | sh
 ```
 
-Run the same line again to update; your boards stay. Open a new terminal afterwards so `slate` is found.
+Run the same line again to update; your boards stay. Open a new terminal afterwards so `slate` is found. To remove it, `slate uninstall`: it takes away the command, its PATH line and the agent skills, and leaves your boards.
 
 **2. Open your boards.** Either way you see the same files:
 

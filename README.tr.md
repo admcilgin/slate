@@ -20,7 +20,7 @@ Slate kendi bilgisayarınızda çalışır, her panoyu düz bir JSON dosyası ol
 curl -fsSL https://slate.appusta.com/install.sh | sh
 ```
 
-Güncellemek için aynı satırı tekrar çalıştırın; panolarınız yerinde kalır. Kurulumdan sonra `slate` komutunun bulunması için yeni bir terminal açın.
+Güncellemek için aynı satırı tekrar çalıştırın; panolarınız yerinde kalır. Kurulumdan sonra `slate` komutunun bulunması için yeni bir terminal açın. Kaldırmak için `slate uninstall`: komutu, PATH satırını ve ajan becerilerini kaldırır, panolarınıza dokunmaz.
 
 **2. Panolarınızı açın.** İki yol da aynı dosyaları gösterir:
 

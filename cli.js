@@ -33,6 +33,7 @@ const HELP = `Usage: slate <command>. Boards live in ${L.BOARDS}
   use [folder|default]          keep boards in another folder (one the user picked on the web copy), or back in data/;
                                 with no folder, print where they are now. SLATE_DATA=<folder> does the same for one run
   install                       install the agent skill for Claude Code, Codex and GitHub Copilot (each one found here)
+  uninstall [--yes]             remove Slate, the slate command, its PATH line and the agent skills; boards stay
 
 JSON comes from the argument, or from stdin when it is "-" or missing.
 Item types and fields are documented in ${path.join(__dirname, 'AGENTS.md')}`;
@@ -307,6 +308,48 @@ const commands = {
       fs.writeFileSync(path.join(dir, 'SKILL.md'), skill);
     }
     out(found.map(([n, d]) => `${n}: ${path.join(d, 'skills', 'slate', 'SKILL.md')}`).join('\n'));
+  },
+
+  uninstall() {
+    const home = os.homedir(), clone = fs.existsSync(path.join(__dirname, '.git')); // a git clone is the user's own work: leave it on disk
+    const inside = L.DATA.startsWith(__dirname + path.sep), keep = path.join(home, 'Slate');
+    const demoOnly = L.list().every(n => n === 'demo' && fs.readFileSync(L.file(n), 'utf8') === fs.readFileSync(path.join(__dirname, 'demo.json'), 'utf8'));
+    const move = inside && !clone && !demoOnly; // boards in ~/.slate/data would go with it: take them to ~/Slate first
+    if (move && fs.existsSync(keep)) die(`your boards are in ${L.DATA}, inside Slate, and ${keep} already exists. Move them out (or \`slate use <folder>\`) and run uninstall again`);
+    if (!flags.has('--yes')) {
+      if (!process.stdin.isTTY) die('run `slate uninstall --yes` to remove Slate');
+      process.stdout.write(`Remove Slate from ${__dirname}? Your boards ${move ? `move to ${keep}` : `stay in ${inside ? L.DATA : path.dirname(L.BOARDS)}`}. [y/N] `);
+      const b = Buffer.alloc(64);
+      let n;
+      for (;;) try { n = fs.readSync(0, b, 0, 64, null); break; } // a terminal's stdin can be non-blocking: wait for the answer
+      catch (e) { if (e.code !== 'EAGAIN') throw e; Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 50); }
+      if (!/^y/i.test(b.toString('utf8', 0, n).trim())) return out('nothing removed');
+    }
+    const done = [], cli = path.join(__dirname, 'cli.js');
+    const s = server();
+    if (s) { process.kill(s.pid); done.push('stopped the server'); }
+    for (const d of new Set((process.env.PATH || '').split(path.delimiter).concat(path.join(home, '.local', 'bin')))) { // only links to this copy
+      const f = path.join(d, 'slate');
+      try { if (fs.lstatSync(f).isSymbolicLink() && fs.realpathSync(f) === fs.realpathSync(cli)) { fs.rmSync(f); done.push(f); } } catch {}
+    }
+    for (const d of [path.join(home, '.claude'), process.env.CODEX_HOME || path.join(home, '.codex'), path.join(home, '.copilot')]) {
+      const dir = path.join(d, 'skills', 'slate'); // only a skill that points at this copy (install writes the path into it)
+      try { if (fs.readFileSync(path.join(dir, 'SKILL.md'), 'utf8').includes(__dirname)) { fs.rmSync(dir, { recursive: true }); done.push(dir); } } catch {}
+    }
+    for (const rc of ['.zshrc', '.bash_profile', '.bashrc', '.profile', '.config/fish/config.fish'].map(f => path.join(home, f))) {
+      try {
+        const t = fs.readFileSync(rc, 'utf8'), u = t.replace(/\n?[^\n]*# added by slate[^\n]*/g, '');
+        if (u !== t) { fs.writeFileSync(rc, u); done.push(`the PATH line in ${rc}`); }
+      } catch {}
+    }
+    if (move) { // without the old server, cursor and marker files
+      fs.cpSync(L.DATA, keep, { recursive: true, filter: f => f === L.DATA || !path.basename(f).startsWith('.') });
+      done.push(`moved your boards to ${keep}`);
+    }
+    if (!inside) for (const f of [L.MARK, path.join(L.DATA, '.server.log')]) fs.rmSync(f, { force: true }); // the web copy then says agents no longer use the folder
+    if (!clone) { fs.rmSync(__dirname, { recursive: true, force: true }); done.push(__dirname); }
+    out(`Removed:\n  ${done.join('\n  ')}\nYour boards: ${move ? keep : inside && !clone ? 'there were none besides the demo' : path.dirname(L.BOARDS)}`
+      + (clone ? `\nThis is a git clone, so ${__dirname} stays; delete it yourself if you like (and \`npm unlink -g slate\` if you linked it).` : ''));
   },
 };
 
