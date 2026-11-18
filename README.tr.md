@@ -101,7 +101,7 @@ Yerleşik bir sohbet ya da ayarlanacak bir API anahtarı yoktur. Ajan, zaten kul
 Bilgisayarınızın başka bir yerinde çalışan ajanlar komut satırı aracını kullanır. Araç pano dosyalarını doğrudan düzenler; tarayıcının ya da sunucunun açık olması gerekmez:
 
 ```sh
-node cli.js status                      # Slate nerede, panolar, sunucu açıksa adresi
+node cli.js status                      # Slate nerede, panolar, sunucu açıksa ya da web kopyası açtıysa adresi
 node cli.js show demo                   # tüm öğeler, satır başına bir tane
 node cli.js new "Lansman planı"         # pano oluştur
 node cli.js add demo '{"type":"note","text":"Yayınla"}'

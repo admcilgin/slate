@@ -14,7 +14,7 @@ Slate is a local whiteboard. Run it with `node server.js` and open http://localh
 - **Inside this folder:** edit `data/boards/<name>.json` directly, following the rules below.
 - **From anywhere else:** use the CLI, `node <slate>/cli.js`. It needs no browser and no running server, validates what you write, and keeps the file format right. Run it with no arguments for the command list: `status`, `boards`, `show`, `new`, `add`, `set`, `rm`, `rm-board`, `asset`, `cards`, `move`, `selection`, `wait`, `shot`, `pdf`, `html`, `start`, `stop`.
 
-A running server records its port in `data/.server.json` (`{port, pid, url}`); `cli.js status` reports it, along with where the boards are. The default is http://localhost:4747, changed with `PORT=`. You only need the server so a human can look at the board.
+A running server records its port in `data/.server.json` (`{port, pid, url}`); `cli.js status` reports it, along with where the boards are. A tab of the static web copy (see `public/folder.js`) with this folder open writes `data/.web.json` (`{url, at}`) every 30 s; `status` shows it under `web`, with `open` true if it checked in within 90 s. The default is http://localhost:4747, changed with `PORT=`. You only need the server so a human can look at the board.
 
 `node cli.js install` installs the skill (`skills/slate/SKILL.md`) for every agent it finds on the machine: Claude Code (`~/.claude/skills/slate`), Codex (`~/.codex/skills/slate`, or under `$CODEX_HOME`) and GitHub Copilot (`~/.copilot/skills/slate`). Agents in other projects then know Slate exists and how to drive it.
 

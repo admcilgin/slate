@@ -13,7 +13,7 @@ Run every command as `node {{SLATE}}/cli.js <command>`.
 
 | Command | What it does |
 |---|---|
-| `status` | Where Slate lives, the list of boards, and the URL and port if the server is running |
+| `status` | Where Slate lives, the list of boards, the URL and port if the server is running, and under `web` the web copy that last opened these boards (`open`: a tab has them open now) |
 | `boards` | Boards with item counts |
 | `show <board>` | Every item on the board, one JSON object per line |
 | `new <board>` | Create an empty board |
@@ -39,7 +39,7 @@ For large or quote-heavy JSON, pass `-` and pipe it in: `node {{SLATE}}/cli.js a
 3. **Read the item reference once per session** before your first `add`: `{{SLATE}}/AGENTS.md` lists every item type, its fields, sizes, colours and layout tips. Only use types and fields documented there.
 4. **Add in one call.** Build the whole layout as an array and send it with a single `add`, giving every item explicit `x`/`y` so nothing overlaps. Items without a position are stacked below the existing content. Give items readable ids (`"login-api"`) so you can `set` them later.
 5. **Change with `set`, not delete-and-add.** `set` keeps the item's id and position.
-6. **Tell the user where to look.** If `status` shows the server running, give them the board URL (`<url>/#<board>`). Otherwise give them `https://slate.appusta.com/#<board>`: it needs no server or account and opens in Chrome, Edge or Brave. The first time, it asks for a folder; tell them to pick `{{SLATE}}/data`. It reads and writes the same files as you, so your changes show up there within a second. Run `start` only if they want the local copy or use Safari or Firefox. You never need the server for your own reads and writes.
+6. **Tell the user where to look.** `new` and `add` print the board's link as `url`: the local server's if it is running, else the web copy's from `status` → `web`. If `url` is null, give them `https://slate.appusta.com/#<board>`: it needs no server or account and opens in Chrome, Edge or Brave. The first time, it asks for a folder; tell them to pick `{{SLATE}}/data`. It reads and writes the same files as you, so your changes show up there within a second. Run `start` only if they want the local copy or use Safari or Firefox. You never need the server for your own reads and writes.
 
 7. **Look at the picture when the numbers are not enough.** `shot` then read the PNG: to understand a hand-drawn sketch or wireframe (freehand strokes are unreadable as JSON), and to check a layout you just wrote for overlaps. Needs a Chromium-family browser installed.
 8. **Let the user point.** If they say "this" or "the selected ones", run `selection`. If they want to steer you from the board ("watch the board", "I'll mark what to change"), loop on `wait <board> --timeout=<s>`: act on what they added or changed, then wait again.

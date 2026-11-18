@@ -5,6 +5,7 @@ const DATA = path.join(__dirname, 'data');
 const ASSETS = path.join(DATA, 'assets');
 const BOARDS = path.join(DATA, 'boards');
 const RUN = path.join(DATA, '.server.json'); // written by a running server: { port, pid, url }
+const WEB = path.join(DATA, '.web.json'); // written every 30 s by a tab on a static host with this folder open: { url, at }
 const CURSOR = path.join(DATA, '.cursor.json'); // written by the open tab: { board, selected, at }; `cli.js selection` reads it
 const MIME = {
   '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json',
@@ -59,4 +60,4 @@ if (fs.existsSync(legacy) && !fs.existsSync(file('main'))) fs.renameSync(legacy,
 const demo = path.join(__dirname, 'demo.json');
 if (!list().length) fs.existsSync(demo) ? fs.copyFileSync(demo, file('demo')) : fs.writeFileSync(file('main'), EMPTY); // first run: showcase board
 
-module.exports = { DATA, ASSETS, BOARDS, RUN, CURSOR, MIME, NAME, EMPTY, TYPES, file, list, format, read, write, exportHTML };
+module.exports = { DATA, ASSETS, BOARDS, RUN, WEB, CURSOR, MIME, NAME, EMPTY, TYPES, file, list, format, read, write, exportHTML };

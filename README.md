@@ -101,7 +101,7 @@ There is no built-in chat and no API key to configure. The agent is whichever on
 Agents working elsewhere on your machine use the CLI. It edits board files directly, so neither the browser nor the server has to be running:
 
 ```sh
-node cli.js status                      # where Slate lives, boards, URL if the server is up
+node cli.js status                      # where Slate lives, boards, URL if the server is up or the web copy has them open
 node cli.js show demo                   # every item, one per line
 node cli.js new "Launch plan"           # create a board
 node cli.js add demo '{"type":"note","text":"Ship it"}'

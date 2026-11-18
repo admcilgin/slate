@@ -136,7 +136,10 @@
     await scanAssets(); await changes();
     await idb('readwrite', s => s.put(dir, 'dir')).catch(() => {});
     open(); watch();
+    beat(); setInterval(beat, 30000);
   }
+  // Tells `cli.js status` this folder is open on the web, and where, so agents can hand out the link.
+  const beat = () => put(root, '.web.json', JSON.stringify({ url: location.origin + location.pathname.replace(/\/(index\.html)?$/, ''), at: new Date().toISOString() })).catch(() => {});
 
   // Asking for the folder. The browser remembers the choice; it may still ask once per visit.
   const d = document.getElementById('folder'), note = document.getElementById('folderNote');

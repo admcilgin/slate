@@ -10,7 +10,7 @@ const pos = args.filter(a => !a.startsWith('--'));
 
 const HELP = `Slate CLI. Boards live in ${L.BOARDS}
 
-  status                        where Slate lives, its boards, and the URL if the server is running
+  status                        where Slate lives, its boards, the URL if the server is running, and the web copy that last opened them
   start                         start the server in the background (only needed for a human to look)
   stop                          stop the server
   boards                        list boards with item counts
@@ -69,7 +69,11 @@ function pick(list, q, label, what) {
   return hits[0];
 }
 
-const urlFor = (s, n) => s ? `${s.url}/#${encodeURIComponent(n)}` : null;
+// The web copy that last opened this folder (see public/folder.js); `open` if a tab has checked in within 90 s.
+function web() {
+  try { const w = JSON.parse(fs.readFileSync(L.WEB, 'utf8')); return { url: w.url, open: Date.now() - Date.parse(w.at) < 90e3, seen: w.at }; } catch { return null; }
+}
+const urlFor = n => { const u = server()?.url || web()?.url; return u ? `${u}/#${encodeURIComponent(n)}` : null; };
 
 // The running server, started if there is none (`mine` marks one we started).
 function up() {
@@ -121,7 +125,7 @@ function capture(kind, ext) {
 const commands = {
   status() {
     const s = server();
-    out({ dir: __dirname, boardsDir: L.BOARDS, assetsDir: L.ASSETS, boards: L.list(), running: !!s, url: s?.url || null, port: s?.port || null });
+    out({ dir: __dirname, boardsDir: L.BOARDS, assetsDir: L.ASSETS, boards: L.list(), running: !!s, url: s?.url || null, port: s?.port || null, web: web() });
   },
 
   start() { out(up().url); },
@@ -143,7 +147,7 @@ const commands = {
   new() {
     const n = name(pos[0], false);
     L.write(n, { items: [] });
-    out({ board: n, url: urlFor(server(), n) });
+    out({ board: n, url: urlFor(n) });
   },
 
   add() {
@@ -161,7 +165,7 @@ const commands = {
       b.items.push(it);
     }
     L.write(n, b);
-    out({ board: n, added: items.map(i => i.id), url: urlFor(server(), n) });
+    out({ board: n, added: items.map(i => i.id), url: urlFor(n) });
   },
 
   set() {
