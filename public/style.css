@@ -209,6 +209,9 @@ dialog input { width: 100%; font: inherit; padding: 9px 11px; border-radius: 9px
 #findList span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 #findList small { flex: none; color: var(--sub); }
 #findList p { margin: 0; padding: 8px 10px; color: var(--sub); }
+#folder p { margin: 0 0 10px; line-height: 1.45; }
+#folder code { font: 12px ui-monospace, "SF Mono", Menlo, monospace; }
+#folderCli { display: block; margin-top: 6px; padding: 7px 9px; border-radius: 8px; background: color-mix(in srgb, var(--ink) 6%, transparent); user-select: all; overflow-wrap: anywhere; }
 dialog menu { display: flex; flex-direction: row-reverse; gap: 8px; margin: 14px 0 0; padding: 0; }
 dialog menu button { padding: 7px 16px; border-radius: 9px; background: color-mix(in srgb, var(--ink) 8%, transparent); }
 dialog menu button[value=ok] { background: var(--accent); color: #fff; }

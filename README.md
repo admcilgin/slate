@@ -14,19 +14,20 @@ Slate runs on your machine, stores every board as a plain JSON file, and has no 
 
 ## Run it
 
-Needs [Node.js](https://nodejs.org) 18 or newer. Nothing to install.
+Needs [Node.js](https://nodejs.org) 18 or newer. One line installs Slate in `~/.slate`, puts the `slate` command on your PATH and teaches your agents about it:
 
 ```sh
-git clone https://github.com/admcilgin/slate.git
-cd slate
-node server.js
+curl -fsSL https://slate.appusta.com/install.sh | sh
+slate start
 ```
+
+Run the same line again to update; your boards stay. Or work from a clone: `git clone https://github.com/admcilgin/slate.git`, then `npm link` inside it for the `slate` command, and `node server.js`.
 
 Open http://localhost:4747. To use another port: `PORT=5000 node server.js`.
 
 The first run opens a board called `demo` that shows every kind of item.
 
-**Without Node.** Put the `public/` folder on any static host (it needs HTTPS). Opened from anywhere but localhost, Slate asks for a folder on your computer and keeps the boards there: pick your Slate `data` folder to share it with the CLI and your agents, or an empty one to start fresh. Nothing is uploaded and there is no account. If you pick another folder, run `node cli.js use <that folder>` once so the CLI, the local server and your agents use it too. This needs Chrome, Edge or Brave on a computer; Safari and Firefox cannot open a folder.
+**Without Node.** Put the `public/` folder on any static host (it needs HTTPS). Opened from anywhere but localhost, Slate asks for a folder on your computer and keeps the boards there: pick your Slate `data` folder to share it with the CLI and your agents, or an empty one to start fresh. Nothing is uploaded and there is no account. If you pick another folder, run `slate use <that folder>` once so the CLI, the local server and your agents use it too. This needs Chrome, Edge or Brave on a computer; Safari and Firefox cannot open a folder.
 
 ## What you can put on a board
 
@@ -101,36 +102,36 @@ There is no built-in chat and no API key to configure. The agent is whichever on
 Agents working elsewhere on your machine use the CLI. It edits board files directly, so neither the browser nor the server has to be running:
 
 ```sh
-node cli.js status                      # where Slate lives, boards, URL if the server is up or the web copy has them open
-node cli.js show demo                   # every item, one per line
-node cli.js new "Launch plan"           # create a board
-node cli.js add demo '{"type":"note","text":"Ship it"}'
-node cli.js set demo <id> '{"color":"#34c759"}'
-node cli.js rm demo <id>
-node cli.js start                       # start the server in the background; stop ends it
+slate status                      # where Slate lives, boards, URL if the server is up or the web copy has them open
+slate show demo                   # every item, one per line
+slate new "Launch plan"           # create a board
+slate add demo '{"type":"note","text":"Ship it"}'
+slate set demo <id> '{"color":"#34c759"}'
+slate rm demo <id>
+slate start                       # start the server in the background; stop ends it
 ```
 
 The board also works the other way round, as the thing you point with:
 
 ```sh
-node cli.js selection                   # what you have selected in the open tab: "make these a task list"
-node cli.js wait demo                   # blocks until you change the board, then prints what changed
-node cli.js shot demo                   # a PNG the agent can look at: your sketches, or its own layout
-node cli.js shot demo <frame-id>        # one frame with its contents
-node cli.js pdf demo                    # vector PDF, no print dialog
-node cli.js html demo                   # one self-contained HTML file to send to someone
-node cli.js cards demo                  # every kanban card with its column and detail
-node cli.js move demo "Export to PNG" Doing   # take a card; later move it to Done
+slate selection                   # what you have selected in the open tab: "make these a task list"
+slate wait demo                   # blocks until you change the board, then prints what changed
+slate shot demo                   # a PNG the agent can look at: your sketches, or its own layout
+slate shot demo <frame-id>        # one frame with its contents
+slate pdf demo                    # vector PDF, no print dialog
+slate html demo                   # one self-contained HTML file to send to someone
+slate cards demo                  # every kanban card with its column and detail
+slate move demo "Export to PNG" Doing   # take a card; later move it to Done
 ```
 
 A kanban works as a task queue for an agent: write a card with the brief in its detail lines, and ask the agent to work the board. It moves the card to your in-progress column when it starts and to done when the work is finished.
 
 With `wait` you can steer an agent without typing to it: circle a part of a screenshot, drop a note that says what to change, and the agent picks it up. `shot` and `pdf` use the Chrome, Chromium, Edge or Brave already on your machine.
 
-Run `node cli.js` for the full list. Inside the Slate folder every agent picks up `AGENTS.md` by itself. To teach your agents about Slate in every other project too, install the bundled skill once:
+Run `slate` with no arguments for the full list. Inside the Slate folder every agent picks up `AGENTS.md` by itself. To teach your agents about Slate in every other project too, install the bundled skill once:
 
 ```sh
-node cli.js install
+slate install
 ```
 
 It installs for each agent it finds on your machine:

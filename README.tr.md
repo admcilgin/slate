@@ -14,19 +14,20 @@ Slate kendi bilgisayarınızda çalışır, her panoyu düz bir JSON dosyası ol
 
 ## Çalıştırma
 
-[Node.js](https://nodejs.org) 18 veya üstü gerekir. Kurulacak başka bir şey yoktur.
+[Node.js](https://nodejs.org) 18 veya üstü gerekir. Tek satır Slate'i `~/.slate` klasörüne kurar, `slate` komutunu PATH'inize ekler ve ajanlarınıza tanıtır:
 
 ```sh
-git clone https://github.com/admcilgin/slate.git
-cd slate
-node server.js
+curl -fsSL https://slate.appusta.com/install.sh | sh
+slate start
 ```
+
+Güncellemek için aynı satırı tekrar çalıştırın; panolarınız yerinde kalır. Ya da bir klondan çalışın: `git clone https://github.com/admcilgin/slate.git`, içinde `slate` komutu için `npm link`, sonra `node server.js`.
 
 http://localhost:4747 adresini açın. Başka bir port için: `PORT=5000 node server.js`.
 
 İlk açılışta, tüm öğe türlerini gösteren `demo` adlı bir pano gelir.
 
-**Node olmadan.** `public/` klasörünü herhangi bir statik barındırmaya koyun (HTTPS gerekir). Slate localhost dışında bir adresten açılınca bilgisayarınızdan bir klasör ister ve panoları orada tutar: CLI ve ajanlarınızla paylaşmak için Slate'in `data` klasörünü, sıfırdan başlamak için boş bir klasör seçin. Hiçbir şey yüklenmez, hesap da yoktur. Başka bir klasör seçerseniz CLI, yerel sunucu ve ajanlarınız da kullansın diye bir kez `node cli.js use <o klasör>` çalıştırın. Bilgisayarda Chrome, Edge veya Brave gerekir; Safari ve Firefox klasör açamaz.
+**Node olmadan.** `public/` klasörünü herhangi bir statik barındırmaya koyun (HTTPS gerekir). Slate localhost dışında bir adresten açılınca bilgisayarınızdan bir klasör ister ve panoları orada tutar: CLI ve ajanlarınızla paylaşmak için Slate'in `data` klasörünü, sıfırdan başlamak için boş bir klasör seçin. Hiçbir şey yüklenmez, hesap da yoktur. Başka bir klasör seçerseniz CLI, yerel sunucu ve ajanlarınız da kullansın diye bir kez `slate use <o klasör>` çalıştırın. Bilgisayarda Chrome, Edge veya Brave gerekir; Safari ve Firefox klasör açamaz.
 
 ## Panoya neler konabilir
 
@@ -101,36 +102,36 @@ Yerleşik bir sohbet ya da ayarlanacak bir API anahtarı yoktur. Ajan, zaten kul
 Bilgisayarınızın başka bir yerinde çalışan ajanlar komut satırı aracını kullanır. Araç pano dosyalarını doğrudan düzenler; tarayıcının ya da sunucunun açık olması gerekmez:
 
 ```sh
-node cli.js status                      # Slate nerede, panolar, sunucu açıksa ya da web kopyası açtıysa adresi
-node cli.js show demo                   # tüm öğeler, satır başına bir tane
-node cli.js new "Lansman planı"         # pano oluştur
-node cli.js add demo '{"type":"note","text":"Yayınla"}'
-node cli.js set demo <id> '{"color":"#34c759"}'
-node cli.js rm demo <id>
-node cli.js start                       # sunucuyu arka planda başlat; stop durdurur
+slate status                      # Slate nerede, panolar, sunucu açıksa ya da web kopyası açtıysa adresi
+slate show demo                   # tüm öğeler, satır başına bir tane
+slate new "Lansman planı"         # pano oluştur
+slate add demo '{"type":"note","text":"Yayınla"}'
+slate set demo <id> '{"color":"#34c759"}'
+slate rm demo <id>
+slate start                       # sunucuyu arka planda başlat; stop durdurur
 ```
 
 Pano ters yönde de çalışır: ajana bir şeyi göstermek için kullanırsınız.
 
 ```sh
-node cli.js selection                   # açık sekmede seçtikleriniz: "bunları görev listesi yap"
-node cli.js wait demo                   # siz panoyu değiştirene kadar bekler, sonra neyin değiştiğini yazar
-node cli.js shot demo                   # ajanın bakabileceği bir PNG: sizin çizimleriniz ya da kendi yerleşimi
-node cli.js shot demo <çerçeve-id>      # tek bir çerçeve, içindekilerle
-node cli.js pdf demo                    # vektör PDF, yazdırma penceresi olmadan
-node cli.js html demo                   # birine göndermek için tek dosyalık HTML
-node cli.js cards demo                  # tüm kanban kartları, sütunu ve detayıyla
-node cli.js move demo "Export to PNG" Doing   # kartı üstlen; bitince Done'a taşı
+slate selection                   # açık sekmede seçtikleriniz: "bunları görev listesi yap"
+slate wait demo                   # siz panoyu değiştirene kadar bekler, sonra neyin değiştiğini yazar
+slate shot demo                   # ajanın bakabileceği bir PNG: sizin çizimleriniz ya da kendi yerleşimi
+slate shot demo <çerçeve-id>      # tek bir çerçeve, içindekilerle
+slate pdf demo                    # vektör PDF, yazdırma penceresi olmadan
+slate html demo                   # birine göndermek için tek dosyalık HTML
+slate cards demo                  # tüm kanban kartları, sütunu ve detayıyla
+slate move demo "Export to PNG" Doing   # kartı üstlen; bitince Done'a taşı
 ```
 
 Kanban, ajan için bir iş kuyruğu olarak çalışır: kartı yazın, ne istediğinizi detay satırlarına koyun ve ajandan panodaki işleri yapmasını isteyin. Başlarken kartı "yapılıyor" sütununuza, iş bitince "bitti" sütununuza taşır.
 
 `wait` ile ajana yazmadan yön verirsiniz: ekran görüntüsünde bir yeri yuvarlak içine alın, ne değişeceğini söyleyen bir not bırakın, ajan onu alır. `shot` ve `pdf`, bilgisayarınızda zaten kurulu olan Chrome, Chromium, Edge ya da Brave'i kullanır.
 
-Tam liste için `node cli.js` çalıştırın. Slate klasörünün içinde her ajan `AGENTS.md`'yi kendiliğinden okur. Ajanlarınızın Slate'i diğer projelerde de tanıması için birlikte gelen skill'i bir kez kurun:
+Tam liste için `slate` komutunu argümansız çalıştırın. Slate klasörünün içinde her ajan `AGENTS.md`'yi kendiliğinden okur. Ajanlarınızın Slate'i diğer projelerde de tanıması için birlikte gelen skill'i bir kez kurun:
 
 ```sh
-node cli.js install
+slate install
 ```
 
 Bilgisayarınızda bulduğu her ajan için kurar:

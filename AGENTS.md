@@ -12,27 +12,27 @@ Slate is a local whiteboard. Run it with `node server.js` and open http://localh
 ## Two ways in
 
 - **Inside this folder:** edit `data/boards/<name>.json` directly, following the rules below.
-- **From anywhere else:** use the CLI, `node <slate>/cli.js`. It needs no browser and no running server, validates what you write, and keeps the file format right. Run it with no arguments for the command list: `status`, `boards`, `show`, `new`, `add`, `set`, `rm`, `rm-board`, `asset`, `cards`, `move`, `selection`, `wait`, `shot`, `pdf`, `html`, `use`, `start`, `stop`.
+- **From anywhere else:** use the CLI, the `slate` command (`node <slate>/cli.js` where it is not on PATH). It needs no browser and no running server, validates what you write, and keeps the file format right. Run it with no arguments for the command list: `status`, `boards`, `show`, `new`, `add`, `set`, `rm`, `rm-board`, `asset`, `cards`, `move`, `selection`, `wait`, `shot`, `pdf`, `html`, `use`, `start`, `stop`.
 
-Boards live in `data/` unless the user keeps them in a folder of their own, typically one they picked on the web copy: `cli.js use <folder>` saves that choice in `.slate-data` (`use default` goes back), `SLATE_DATA=<folder>` overrides it for one run, and the server follows it too. A folder with `boards/` in it is used as is; one with `data/boards/` uses its `data/`.
+Boards live in `data/` unless the user keeps them in a folder of their own, typically one they picked on the web copy: `slate use <folder>` saves that choice in `.slate-data` (`use default` goes back), `SLATE_DATA=<folder>` overrides it for one run, and the server follows it too. A folder with `boards/` in it is used as is; one with `data/boards/` uses its `data/`.
 
-A running server records its port in `data/.server.json` (`{port, pid, url}`); `cli.js status` reports it, along with where the boards are. A tab of the static web copy (see `public/folder.js`) with this folder open writes `data/.web.json` (`{url, at}`) every 30 s; `status` shows it under `web`, with `open` true if it checked in within 90 s. The default is http://localhost:4747, changed with `PORT=`. You only need the server so a human can look at the board.
+A running server records its port in `data/.server.json` (`{port, pid, url}`); `slate status` reports it, along with where the boards are. A tab of the static web copy (see `public/folder.js`) with this folder open writes `data/.web.json` (`{url, at}`) every 30 s; `status` shows it under `web`, with `open` true if it checked in within 90 s. The default is http://localhost:4747, changed with `PORT=`. You only need the server so a human can look at the board.
 
-`node cli.js install` installs the skill (`skills/slate/SKILL.md`) for every agent it finds on the machine: Claude Code (`~/.claude/skills/slate`), Codex (`~/.codex/skills/slate`, or under `$CODEX_HOME`) and GitHub Copilot (`~/.copilot/skills/slate`). Agents in other projects then know Slate exists and how to drive it.
+`slate install` installs the skill (`skills/slate/SKILL.md`) for every agent it finds on the machine: Claude Code (`~/.claude/skills/slate`), Codex (`~/.codex/skills/slate`, or under `$CODEX_HOME`) and GitHub Copilot (`~/.copilot/skills/slate`). Agents in other projects then know Slate exists and how to drive it.
 
 ## Seeing the board and being pointed at things
 
-- **`node cli.js shot <board> [id]`** writes a PNG to `data/shots/` and prints its path; read that image. Use it to look at what the user drew by hand (freehand strokes are only numbers in the file), to read a sketch or wireframe, and to check your own layout after writing: items whose height grows with their content are taller on screen than the `h` in the file. With an `id` it captures that item, or that frame with everything inside it. Needs Chrome, Chromium, Edge or Brave on the machine (`CHROME=/path` to point at one).
-- **`node cli.js selection`** prints the items the user has selected in the open tab. When they say "this", "these" or "the selected ones", that is what they mean. `at` is when the selection last changed; it can be stale if the tab is closed.
-- **`node cli.js wait <board>`** blocks until the user changes the board and has paused for 3 seconds (`--quiet=<s>`), then prints `added`, `changed` (each with a `was` holding the old values), `removed` and `selected`. Use it when the user wants to direct you from the board: they circle something, drop a note saying what to do, drag a card to another column, and you act on it and wait again. Pass `--timeout=<s>` below your shell's own limit; on timeout it prints `{"timeout":true}` and you can call it again.
+- **`slate shot <board> [id]`** writes a PNG to `data/shots/` and prints its path; read that image. Use it to look at what the user drew by hand (freehand strokes are only numbers in the file), to read a sketch or wireframe, and to check your own layout after writing: items whose height grows with their content are taller on screen than the `h` in the file. With an `id` it captures that item, or that frame with everything inside it. Needs Chrome, Chromium, Edge or Brave on the machine (`CHROME=/path` to point at one).
+- **`slate selection`** prints the items the user has selected in the open tab. When they say "this", "these" or "the selected ones", that is what they mean. `at` is when the selection last changed; it can be stale if the tab is closed.
+- **`slate wait <board>`** blocks until the user changes the board and has paused for 3 seconds (`--quiet=<s>`), then prints `added`, `changed` (each with a `was` holding the old values), `removed` and `selected`. Use it when the user wants to direct you from the board: they circle something, drop a note saying what to do, drag a card to another column, and you act on it and wait again. Pass `--timeout=<s>` below your shell's own limit; on timeout it prints `{"timeout":true}` and you can call it again.
 - `pdf <board> [id]` and `html <board>` write a file to hand to someone: a vector PDF, or one self-contained HTML page with the board and its local media inside that opens in any browser without Slate. Both take `--out=<file>`.
 
 ## Working from a kanban
 
-A kanban can be the user's task queue for you. `node cli.js cards <board>` lists every card with its column, title and detail. When asked to work the board (or a card):
+A kanban can be the user's task queue for you. `slate cards <board>` lists every card with its column, title and detail. When asked to work the board (or a card):
 
 1. Pick the card the user named, or the first card of the first column. Read its detail: that is the brief.
-2. Before starting, `node cli.js move <board> "<card title>" "<in-progress column>"` so the user sees it has been taken. Columns are matched by title, so use the board's own names (`Doing`, `In progress`, `Yapılıyor`…).
+2. Before starting, `slate move <board> "<card title>" "<in-progress column>"` so the user sees it has been taken. Columns are matched by title, so use the board's own names (`Doing`, `In progress`, `Yapılıyor`…).
 3. Do the work. When it is finished and checked, `move` the card to the done column, with `--note="<one line on what was done>"` if that helps.
 4. If you cannot finish it, leave it where it is (or move it back) with a `--note` saying what is blocking. Never move a card to done for work you did not complete.
 

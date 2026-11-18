@@ -8,7 +8,7 @@ const [cmd, ...args] = process.argv.slice(2);
 const flags = new Set(args.filter(a => a.startsWith('--')));
 const pos = args.filter(a => !a.startsWith('--'));
 
-const HELP = `Slate CLI. Boards live in ${L.BOARDS}
+const HELP = `Usage: slate <command>. Boards live in ${L.BOARDS}
 
   status                        where Slate lives, its boards, the URL if the server is running, and the web copy that last opened them
   start                         start the server in the background (only needed for a human to look)

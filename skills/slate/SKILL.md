@@ -7,7 +7,7 @@ description: Read and edit the user's Slate whiteboard boards from any project. 
 
 Slate is the user's local whiteboard, installed at `{{SLATE}}`. Each board is a JSON file in `{{SLATE}}/data/boards/`. You work on boards with the CLI below. Nothing has to be open: the CLI edits the files directly, and if the user does have a board open in the browser it updates by itself within a fraction of a second.
 
-Run every command as `node {{SLATE}}/cli.js <command>`.
+Run every command as `slate <command>`. If the shell cannot find `slate`, use `node {{SLATE}}/cli.js <command>` instead.
 
 ## Commands
 
@@ -31,7 +31,7 @@ Run every command as `node {{SLATE}}/cli.js <command>`.
 | `use [folder\|default]` | Keep boards in another folder (one the user picked on the web copy), or back in Slate's own `data/`. With no folder, prints where they are |
 | `start` / `stop` | Start the server in the background and print the URL, or stop it |
 
-For large or quote-heavy JSON, pass `-` and pipe it in: `node {{SLATE}}/cli.js add main - < items.json`, or use a heredoc. Board names with spaces need quoting.
+For large or quote-heavy JSON, pass `-` and pipe it in: `slate add main - < items.json`, or use a heredoc. Board names with spaces need quoting.
 
 ## How to work
 
@@ -60,8 +60,8 @@ For large or quote-heavy JSON, pass `-` and pipe it in: `node {{SLATE}}/cli.js a
 Annotate a screen with its API call:
 
 ```sh
-node {{SLATE}}/cli.js asset ./login.png        # → {"src":"/assets/abc-login.png"}
-node {{SLATE}}/cli.js add main - <<'JSON'
+slate asset ./login.png        # → {"src":"/assets/abc-login.png"}
+slate add main - <<'JSON'
 [
   {"id":"login-shot","type":"image","x":80,"y":700,"w":360,"h":640,"src":"/assets/abc-login.png"},
   {"id":"login-pin","type":"pin","x":240,"y":1180,"text":"1"},
@@ -69,5 +69,5 @@ node {{SLATE}}/cli.js add main - <<'JSON'
   {"id":"login-api","type":"code","x":596,"y":840,"w":360,"title":"POST /api/login → 200","text":{"token":"…","user":{"id":42}}}
 ]
 JSON
-node {{SLATE}}/cli.js set main login-api '{"title":"POST /api/v2/login → 200"}'
+slate set main login-api '{"title":"POST /api/v2/login → 200"}'
 ```

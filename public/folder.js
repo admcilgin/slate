@@ -145,6 +145,7 @@
   const d = document.getElementById('folder'), note = document.getElementById('folderNote');
   const go = document.getElementById('folderGo'), other = document.getElementById('folderOther');
   document.getElementById('status').textContent = 'Not saved. Is the folder still there?';
+  document.getElementById('folderCli').textContent = `curl -fsSL ${location.origin}/install.sh | sh`;
   d.oncancel = e => e.preventDefault(); // nothing works without a folder
   function ask(saved) {
     if (!window.showDirectoryPicker) {
