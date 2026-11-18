@@ -1,0 +1,8 @@
+// The public copy of Slate: public/ as static files. Boards stay on the visitor's computer (see public/folder.js).
+// Deploy with `npx wrangler deploy`.
+{
+  "name": "slate",
+  "compatibility_date": "2026-11-18",
+  "assets": { "directory": "./public" },
+  "routes": [{ "pattern": "slate.appusta.com", "custom_domain": true }]
+}
