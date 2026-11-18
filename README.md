@@ -26,6 +26,8 @@ Open http://localhost:4747. To use another port: `PORT=5000 node server.js`.
 
 The first run opens a board called `demo` that shows every kind of item.
 
+**Without Node.** Put the `public/` folder on any static host (it needs HTTPS). Opened from anywhere but localhost, Slate asks for a folder on your computer and keeps the boards there: pick your Slate `data` folder to share it with the CLI and your agents, or an empty one to start fresh. Nothing is uploaded and there is no account. This needs Chrome, Edge or Brave on a computer; Safari and Firefox cannot open a folder.
+
 ## What you can put on a board
 
 **Drawing**
@@ -162,6 +164,7 @@ About 1,900 lines, no build step.
 
 - `cli.js` reads and edits boards from the command line; `lib.js` holds what it shares with the server.
 - `server.js` serves the app, reads and writes board files, and pushes live-reload events.
+- `public/folder.js` stands in for the server on a static host, keeping boards in a folder the user picks.
 - `public/app.js` is the canvas. Each item type has one renderer in `R` and its defaults in `DEF`.
 - `demo.json` is the showcase board copied on first run.
 

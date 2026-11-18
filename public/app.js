@@ -47,6 +47,7 @@ const byId = id => board.items.find(i => i.id === id);
 const selected = () => board.items.filter(i => sel.has(i.id));
 const isPts = i => i.type === 'line' || i.type === 'draw';
 const esc = s => String(s).replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`);
+const asset = s => window.slateAsset?.(s) || s || ''; // folder.js maps /assets/… to the picked folder's files
 const isHttp = u => /^https?:\/\//i.test(u || '');
 const host = u => { try { return new URL(u).hostname.replace(/^www\./, ''); } catch { return u; } };
 const center = () => ({ x: r((innerWidth / 2 - view.x) / view.z), y: r((innerHeight / 2 - view.y) / view.z) });
@@ -184,10 +185,10 @@ const R = {
     b.style.cssText = `background:${i.color || '#ff3b30'};font-size:${Math.max(10, Math.min(i.w, i.h) * .5)}px`;
     b.append(bind(i, 'text', 'txt', ed));
   },
-  image(i, b) { b.append(h('img', { src: i.src || '', alt: i.alt || '', draggable: false })); },
+  image(i, b) { b.append(h('img', { src: asset(i.src), alt: i.alt || '', draggable: false })); },
   video(i, b) {
     if (HEADLESS) return b.append(h('div', { className: 'bad', textContent: 'Video: ' + (i.src || '') })); // a remote player can stall a capture, and shows nothing in a still anyway
-    b.append(h('video', { src: i.src || '', controls: true, preload: 'metadata' }));
+    b.append(h('video', { src: asset(i.src), controls: true, preload: 'metadata' }));
   },
   embed(i, b) {
     if (HEADLESS) return b.append(h('div', { className: 'bad', textContent: 'Embed: ' + (i.url || '') }));
@@ -941,8 +942,8 @@ async function addFiles(files, p) {
 function addMedia(type, src, p) {
   const it = add({ type, src, ...p });
   const fit = (w, hh) => { if (w && hh && byId(it.id)) { it.h = r(it.w * hh / w); place(it); commit(); } };
-  if (type === 'image') { const im = new Image(); im.onload = () => fit(im.naturalWidth, im.naturalHeight); im.src = src; }
-  else { const v = document.createElement('video'); v.onloadedmetadata = () => fit(v.videoWidth, v.videoHeight); v.src = src; }
+  if (type === 'image') { const im = new Image(); im.onload = () => fit(im.naturalWidth, im.naturalHeight); im.src = asset(src); }
+  else { const v = document.createElement('video'); v.onloadedmetadata = () => fit(v.videoWidth, v.videoHeight); v.src = asset(src); }
 }
 
 function addURL(url, p) {
@@ -1087,7 +1088,10 @@ $('#pdfBtn').onclick = exportPDF;
 $('#shareBtn').onclick = async () => {
   if (editing) stopEdit(); else commit();
   await flush();
-  location.href = '/api/export?b=' + encodeURIComponent(name); // comes back as a download, so the page stays
+  const res = await fetch('/api/export?b=' + encodeURIComponent(name)).catch(() => null);
+  if (!res?.ok) { $('#status').hidden = false; return; }
+  const a = h('a', { href: URL.createObjectURL(await res.blob()), download: name + '.html' });
+  a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 };
 
 // ---------- boards ----------

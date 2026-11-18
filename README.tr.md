@@ -26,6 +26,8 @@ http://localhost:4747 adresini açın. Başka bir port için: `PORT=5000 node se
 
 İlk açılışta, tüm öğe türlerini gösteren `demo` adlı bir pano gelir.
 
+**Node olmadan.** `public/` klasörünü herhangi bir statik barındırmaya koyun (HTTPS gerekir). Slate localhost dışında bir adresten açılınca bilgisayarınızdan bir klasör ister ve panoları orada tutar: CLI ve ajanlarınızla paylaşmak için Slate'in `data` klasörünü, sıfırdan başlamak için boş bir klasör seçin. Hiçbir şey yüklenmez, hesap da yoktur. Bilgisayarda Chrome, Edge veya Brave gerekir; Safari ve Firefox klasör açamaz.
+
 ## Panoya neler konabilir
 
 **Çizim**
@@ -162,6 +164,7 @@ Yaklaşık 1.900 satır, derleme adımı yok.
 
 - `cli.js` panoları komut satırından okur ve düzenler; `lib.js` sunucuyla ortak kısımları tutar.
 - `server.js` uygulamayı sunar, pano dosyalarını okuyup yazar ve canlı yenileme olaylarını gönderir.
+- `public/folder.js` statik barındırmada sunucunun yerine geçer, panoları kullanıcının seçtiği klasörde tutar.
 - `public/app.js` tuvalin kendisidir. Her öğe türünün `R` içinde bir çizicisi, `DEF` içinde varsayılanları vardır.
 - `demo.json` ilk açılışta kopyalanan tanıtım panosudur.
 

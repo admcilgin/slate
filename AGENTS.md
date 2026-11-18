@@ -110,5 +110,6 @@ Nested groups, rich text, multi-series charts, rotation, real-time multi-user ed
 - `lib.js` — board paths, naming and file format, and the single-file HTML export, shared by the server and the CLI.
 - `cli.js` — command-line access to boards for agents and scripts.
 - `server.js` — static files, `GET /api/boards`, `GET/PUT/DELETE /api/board?b=<name>`, `POST /api/upload`, `GET /api/events` (live reload), `PUT /api/cursor` (the tab's selection, kept in `data/.cursor.json`), `GET /api/export?b=<name>` (the shared HTML file). Listens on 127.0.0.1 only.
+- `public/folder.js` — on any host but localhost, answers the app's `/api` calls from a folder the user picks (File System Access API, polled for live reload), so `public/` works as a static site with no server.
 - `public/app.js` — canvas, tools, one renderer per item type in `R`, defaults in `DEF`. Adding a type means one entry in each, plus a row in the table above.
 - `public/style.css`, `public/index.html` — look and chrome.

@@ -47,6 +47,7 @@ function exportHTML(n) {
   document.getElementById('status').textContent = 'Shared copy: changes are not saved';
 })();`;
   return pub('index.html')
+    .replace('<script src="folder.js"></script>\n', '')
     .replace('<link rel="stylesheet" href="style.css">', () => `<style>${pub('style.css')}\n#shareBtn, #boardMenu { display: none !important; }</style>`)
     .replace('<script src="app.js"></script>', () => `<script>${shim}</script>\n<script>${pub('app.js').replace(/<\/script/gi, '<\\/script')}</script>`);
 }
