@@ -1,3 +1,7 @@
+/* Allo 1.0.3 by Josh Puckett, SIL OFL 1.1 (fonts/OFL.txt). https://allo.joshpuckett.me */
+@font-face { font-family: "Allo"; src: url("fonts/AlloVariableFriendly.woff2") format("woff2"); font-weight: 100 900; font-style: normal; font-display: swap; }
+@font-face { font-family: "Allo"; src: url("fonts/Allo-Oblique.woff2") format("woff2"); font-weight: 100 500; font-style: italic; font-display: swap; }
+@font-face { font-family: "Allo"; src: url("fonts/Allo-BoldOblique.woff2") format("woff2"); font-weight: 600 900; font-style: italic; font-display: swap; }
 :root {
   --ck: #9b2393; --cs: #c41a16; --cn: #1c00cf;
   --bg: #f5f5f7; --card: #fff; --ink: #1d1d1f; --sub: #86868b; --line: rgba(0,0,0,.1);
@@ -11,7 +15,7 @@
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
 html, body { margin: 0; height: 100%; overflow: hidden; background: var(--bg); color: var(--ink);
-  font: 14px/1.4 -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  font: 14px/1.4 "Allo", -apple-system, BlinkMacSystemFont, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
 button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
@@ -214,7 +218,8 @@ dialog input { width: 100%; font: inherit; padding: 9px 11px; border-radius: 9px
 #help ol { margin: 0 0 10px; padding-left: 20px; }
 #help .sub { color: var(--sub); font-size: 12px; }
 #help a { color: var(--accent); }
-:is(#folder, #help) :is(code, kbd) { font: 12px ui-monospace, "SF Mono", Menlo, monospace; }
+:is(#folder, #help) code { font: 12px ui-monospace, "SF Mono", Menlo, monospace; }
+:is(#folder, #help) kbd { font: 600 12px "Allo", system-ui, sans-serif; }
 code.install { display: block; margin-top: 6px; padding: 7px 9px; border-radius: 8px; background: color-mix(in srgb, var(--ink) 6%, transparent); user-select: all; overflow-wrap: anywhere; }
 #helpFolder button { margin-left: 6px; padding: 3px 10px; border-radius: 7px; background: color-mix(in srgb, var(--ink) 8%, transparent); }
 dialog menu { display: flex; flex-direction: row-reverse; gap: 8px; margin: 14px 0 0; padding: 0; }

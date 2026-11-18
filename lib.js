@@ -16,6 +16,7 @@ const MIME = {
   '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json',
   '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.gif': 'image/gif', '.webp': 'image/webp',
   '.svg': 'image/svg+xml', '.avif': 'image/avif', '.mp4': 'video/mp4', '.webm': 'video/webm', '.mov': 'video/quicktime', '.m4v': 'video/mp4',
+  '.woff2': 'font/woff2',
 };
 const NAME = /^[\p{L}\p{N}_][\p{L}\p{N}_ -]{0,59}$/u; // board name = file name, so keep it tame
 const EMPTY = '{"items":[\n]}\n';
@@ -54,7 +55,7 @@ function exportHTML(n) {
 })();`;
   return pub('index.html')
     .replace('<script src="folder.js"></script>\n', '')
-    .replace('<link rel="stylesheet" href="style.css">', () => `<style>${pub('style.css')}\n#shareBtn, #boardMenu { display: none !important; }</style>`)
+    .replace('<link rel="stylesheet" href="style.css">', () => `<style>${pub('style.css').replace(/url\("(fonts\/[\w-]+\.woff2)"\)/g, (_, f) => `url("data:font/woff2;base64,${fs.readFileSync(path.join(__dirname, 'public', f)).toString('base64')}")`)}\n#shareBtn, #boardMenu { display: none !important; }</style>`)
     .replace('<script src="app.js"></script>', () => `<script>${shim}</script>\n<script>${pub('app.js').replace(/<\/script/gi, '<\\/script')}</script>`);
 }
 
