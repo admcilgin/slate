@@ -1,12 +1,13 @@
 #!/bin/sh
 # Installs or updates Slate and puts the `slate` command on your PATH:
 #   curl -fsSL https://slate.appusta.com/install.sh | sh
-# SLATE_HOME (default ~/.slate) is where it goes, SLATE_BIN where the command is linked, SLATE_REF the branch.
-# Your boards in $SLATE_HOME/data are never touched.
+# SLATE_HOME (default ~/.slate) is where Slate goes, SLATE_BIN where the command is linked, SLATE_WEB the site
+# to download from. The code comes from the same deploy as this script, so the two always match.
+# Your boards are never touched.
 set -eu
 
+WEB="${SLATE_WEB:-https://slate.appusta.com}"
 DIR="${SLATE_HOME:-$HOME/.slate}"
-REF="${SLATE_REF:-main}"
 say() { printf '%s\n' "$*"; }
 fail() { say "slate: $*" >&2; exit 1; }
 
@@ -16,21 +17,15 @@ command -v curl >/dev/null 2>&1 && command -v tar >/dev/null 2>&1 || fail "needs
 
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
-curl -fsSL "https://codeload.github.com/admcilgin/slate/tar.gz/refs/heads/$REF" | tar -xz -C "$tmp" --strip-components=1 \
-  || fail "could not download Slate ($REF)"
+curl -fsSL "$WEB/slate.tar.gz" -o "$tmp/slate.tar.gz" || fail "could not download $WEB/slate.tar.gz"
+mkdir "$tmp/src"
+tar -xzf "$tmp/slate.tar.gz" -C "$tmp/src" && [ -f "$tmp/src/cli.js" ] || fail "the download is damaged; run the installer again"
 mkdir -p "$DIR"
-cp -R "$tmp/." "$DIR/" # the download has no data/, so boards and settings stay as they are
+cp -R "$tmp/src/." "$DIR/" # the download has no data/, so boards and settings stay as they are
 chmod +x "$DIR/cli.js"
 
-# First install: boards go to ~/Slate, a folder you can see and pick in the browser (~/.slate is hidden).
-BOARDS="$HOME/Slate"
-if [ ! -f "$DIR/.slate-data" ] && [ ! -d "$DIR/data/boards" ]; then
-  mkdir -p "$BOARDS"
-  node "$DIR/cli.js" use "$BOARDS" >/dev/null
-fi
-BOARDS=$(node "$DIR/cli.js" use | node -e 'process.stdout.write(JSON.parse(require("fs").readFileSync(0, "utf8")).dataDir)')
-
-# A folder already on PATH that we can write to, or ~/.local/bin added to PATH.
+# The command first, so a later problem never leaves you without it: a folder already on PATH that we can
+# write to, or ~/.local/bin added to PATH in your shell's startup file.
 BIN="${SLATE_BIN:-}"
 if [ -z "$BIN" ]; then
   for d in "$HOME/.local/bin" "$HOME/bin" /opt/homebrew/bin /usr/local/bin; do
@@ -41,8 +36,9 @@ BIN="${BIN:-$HOME/.local/bin}"
 mkdir -p "$BIN"
 ln -sf "$DIR/cli.js" "$BIN/slate"
 
+fresh=""
 case ":$PATH:" in
-  *":$BIN:"*) fresh="" ;;
+  *":$BIN:"*) ;;
   *)
     case "${SHELL:-}" in
       */zsh) rc="$HOME/.zshrc" ;;
@@ -61,14 +57,33 @@ case ":$PATH:" in
     ;;
 esac
 
-"$BIN/slate" install 2>/dev/null || say "No agent found for the skill yet; run \`slate install\` after installing Claude Code, Codex or Copilot."
+# First install: boards go to ~/Slate, a folder you can see and pick in the browser (~/.slate is hidden).
+# A data/ holding nothing but an untouched demo board is an earlier install that never got further.
+unused() {
+  [ -f "$DIR/.slate-data" ] && return 1
+  for f in "$DIR"/data/boards/*.json; do
+    [ -e "$f" ] || continue
+    [ "$(basename "$f")" = demo.json ] && cmp -s "$f" "$DIR/demo.json" && continue
+    return 1
+  done
+}
+if unused; then
+  mkdir -p "$HOME/Slate"
+  node "$DIR/cli.js" use "$HOME/Slate" >/dev/null || fail "could not set up $HOME/Slate"
+fi
+BOARDS=$(node "$DIR/cli.js" status | node -e 'process.stdout.write(require("path").dirname(JSON.parse(require("fs").readFileSync(0, "utf8")).boardsDir))') \
+  || fail "slate status failed; run it to see why"
+
+"$BIN/slate" install >/dev/null 2>&1 && agents="Your agents know about Slate now." \
+  || agents="No agent found yet: run \`slate install\` after installing Claude Code, Codex or Copilot."
 
 say ""
 say "Slate is installed. Your boards are files in $BOARDS."
+say "$agents"
 say ""
-say "  See them   Open ${SLATE_WEB:-https://slate.appusta.com} in Chrome, Edge or Brave and pick that folder,"
+say "  See them   Open $WEB in Chrome, Edge or Brave and pick that folder,"
 say "             or run \`slate start\` for a local copy at http://localhost:4747"
-say "  Use them   Ask Claude Code, Codex or Copilot: \"put the login flow on my Slate board\""
+say "  Use them   Ask your agent: \"put the login flow on my Slate board\""
 say "  Commands   slate status, slate show demo, or just slate for the list"
 if [ -n "$fresh" ]; then
   say ""
