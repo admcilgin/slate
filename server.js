@@ -1,7 +1,7 @@
 // Slate — local whiteboard server. No dependencies. `node server.js`
 const http = require('http'), fs = require('fs'), path = require('path');
 
-const PORT = process.env.PORT || 4747;
+let PORT = +process.env.PORT || 4747;
 const PUB = path.join(__dirname, 'public');
 const { ASSETS, BOARDS, RUN, CURSOR, MIME, NAME, EMPTY, file, list, format, exportHTML } = require('./lib');
 
@@ -50,7 +50,7 @@ function sendFile(req, res, file) {
   });
 }
 
-http.createServer(async (req, res) => {
+const server = http.createServer(async (req, res) => {
   try {
     // Local only: reject DNS-rebinding hosts and writes coming from other websites.
     if (!/^(localhost|127\.0\.0\.1)(:\d+)?$/.test(req.headers.host || '')) return res.writeHead(403).end();
@@ -122,7 +122,13 @@ http.createServer(async (req, res) => {
   } catch (e) {
     res.writeHead(400).end(String(e.message || e));
   }
-}).listen(PORT, '127.0.0.1', () => {
+});
+server.on('error', e => { // the default port is taken (by another Slate copy, say): take the next one. An explicit PORT stays an error
+  if (e.code === 'EADDRINUSE' && !process.env.PORT && PORT < 4767) return server.listen(++PORT, '127.0.0.1');
+  console.error(e.code === 'EADDRINUSE' ? `port ${PORT} is already in use; pick another with PORT=<number>` : e.message);
+  process.exit(1);
+});
+server.listen(PORT, '127.0.0.1', () => {
   const url = `http://localhost:${PORT}`;
   fs.writeFileSync(RUN, JSON.stringify({ port: +PORT, pid: process.pid, url })); // lets the CLI and agents find a running server
   console.log(`Slate → ${url}`);

@@ -199,6 +199,10 @@ input[type=checkbox]:checked { background: var(--accent) center/11px no-repeat u
 #panel label span { flex: 1; }
 #panel label.done span { color: var(--sub); text-decoration: line-through; }
 #panel time { font-size: 11px; color: var(--sub); } #panel time.late { color: #ff3b30; }
+#agentHint { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); width: min(560px, calc(100vw - 32px)); padding: 10px 12px; border-radius: 12px; font-size: 13px; line-height: 1.45; z-index: 5; }
+#agentHint code { font: 12px ui-monospace, "SF Mono", Menlo, monospace; }
+#agentHint button { margin-left: 6px; padding: 3px 10px; border-radius: 7px; background: color-mix(in srgb, var(--ink) 8%, transparent); }
+#agentHint #hintX { margin-left: 2px; background: none; color: var(--sub); }
 #status { position: fixed; bottom: 18px; left: 14px; padding: 7px 12px; font-size: 12px; color: #ff3b30; }
 
 dialog { padding: 18px; width: min(420px, calc(100vw - 32px)); }

@@ -25,7 +25,7 @@ Güncellemek için aynı satırı tekrar çalıştırın; panolarınız yerinde 
 **2. Panolarınızı açın.** İki yol da aynı dosyaları gösterir:
 
 - **Web'de:** [slate.appusta.com](https://slate.appusta.com) adresini Chrome, Edge veya Brave'de açın ve ana klasörünüzdeki `Slate` klasörünü seçin. Tarayıcı bir kez izin ister. Hiçbir şey yüklenmez, hesap yoktur; sayfa bilgisayarınızdaki klasörü okuyup yazar.
-- **Yerelde:** `slate start`, sonra http://localhost:4747 adresini açın. Her tarayıcıda çalışır.
+- **Yerelde:** `slate start`, sonra yazdığı adresi açın (http://localhost:4747 ya da sıradaki boş port). Her tarayıcıda çalışır.
 
 İlk pano olan `demo`, tüm öğe türlerini gösterir. Sağ üst köşedeki **?** butonu bunların hepsini uygulamanın içinde anlatır.
 

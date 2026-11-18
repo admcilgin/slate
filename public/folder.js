@@ -10,7 +10,8 @@
     '"items":[\n' + items.map(i => JSON.stringify(i)).join(',\n') + '\n]}\n';
   const realFetch = fetch.bind(window);
   const written = new Map(), stamps = new Map(), assets = new Map(); // board → last text seen, board → mtime, /assets/x → blob URL
-  let root, boards, es, open;
+  let root, boards, es, open, hinted = false; // hinted: the user closed the note below
+  const hint = document.getElementById('agentHint'); // shown while the slate command keeps its boards in another folder (lib.js writes .cli.json)
   const ready = new Promise(r => open = r);
 
   const idb = (mode, fn) => new Promise((res, rej) => {
@@ -120,6 +121,7 @@
   }
   async function watch() {
     try {
+      hint.hidden = hinted || !!(await root.getFileHandle('.cli.json').catch(() => null)); // gone as soon as `slate use` marks this folder
       const out = await changes();
       if (out.length) { await scanAssets(); out.forEach(n => es?.onmessage?.({ data: n })); } // an agent adds the file first, then the item
     } catch {}
@@ -138,9 +140,10 @@
     open(); watch();
     const f = document.getElementById('helpFolder'), change = document.createElement('button');
     change.textContent = 'Change folder';
-    change.onclick = async () => { // the next visit opens the new folder; a reload starts clean
+    change.onclick = document.getElementById('hintPick').onclick = async () => { // the next visit opens the new folder; a reload starts clean
       try { const next = await showDirectoryPicker({ id: 'slate', mode: 'readwrite' }); await idb('readwrite', s => s.put(next, 'dir')); location.reload(); } catch {}
     };
+    document.getElementById('hintX').onclick = () => { hinted = true; hint.hidden = true; };
     f.replaceChildren('This tab keeps boards in the folder “', Object.assign(document.createElement('b'), { textContent: dir.name }), '”.', change);
     f.hidden = false;
     beat(); setInterval(beat, 30000);

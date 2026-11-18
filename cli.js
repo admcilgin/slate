@@ -81,9 +81,10 @@ const urlFor = n => { const u = server()?.url || web()?.url; return u ? `${u}/#$
 function up() {
   let s = server();
   if (s) return s;
-  require('child_process').spawn(process.execPath, [path.join(__dirname, 'server.js')], { detached: true, stdio: 'ignore' }).unref();
+  const log = path.join(L.DATA, '.server.log'), js = path.join(__dirname, 'server.js');
+  require('child_process').spawn(process.execPath, [js], { detached: true, stdio: ['ignore', 'ignore', fs.openSync(log, 'w')] }).unref();
   for (let i = 0; i < 30 && !(s = server()); i++) Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 100);
-  if (!s) die('server did not start; run `node server.js` to see why');
+  if (!s) die(`server did not start:\n${fs.readFileSync(log, 'utf8').trim().split('\n').slice(0, 6).join('\n') || '(no output)'}\nRun \`node "${js}"\` to try it yourself.`);
   return { ...s, mine: true };
 }
 
@@ -286,9 +287,13 @@ const commands = {
     const want = pos[0] === 'default' ? '' : path.resolve(pos[0]);
     if (want && !L.isDir(want)) die('no such folder: ' + want);
     want ? fs.writeFileSync(L.PICK, want + '\n') : fs.rmSync(L.PICK, { force: true });
+    const to = want ? L.dataIn(want) : path.join(__dirname, 'data');
+    fs.rmSync(L.MARK, { force: true }); // the web copy no longer counts the old folder as the command's (see lib.js)
+    fs.mkdirSync(to, { recursive: true });
+    fs.writeFileSync(path.join(to, '.cli.json'), JSON.stringify({ dir: to }));
     const s = server(); // it serves the old folder, and after the switch `stop` could no longer find it
     if (s) process.kill(s.pid);
-    out({ dataDir: want ? L.dataIn(want) : path.join(__dirname, 'data'), ...(s && { note: 'stopped the server; `start` serves the new folder' }) });
+    out({ dataDir: to, ...(s && { note: 'stopped the server; `start` serves the new folder' }) });
   },
 
   install() { // the three read the same SKILL.md format, each from its own folder

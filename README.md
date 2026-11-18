@@ -25,7 +25,7 @@ Run the same line again to update; your boards stay. Open a new terminal afterwa
 **2. Open your boards.** Either way you see the same files:
 
 - **On the web:** open [slate.appusta.com](https://slate.appusta.com) in Chrome, Edge or Brave and pick the `Slate` folder in your home folder. The browser asks once. Nothing is uploaded and there is no account; the page reads and writes the folder on your computer.
-- **Locally:** `slate start`, then open http://localhost:4747. Works in every browser.
+- **Locally:** `slate start`, then open the address it prints (http://localhost:4747, or the next free port). Works in every browser.
 
 The first board, `demo`, shows every kind of item. The **?** button in the top-right corner explains all this inside the app.
 

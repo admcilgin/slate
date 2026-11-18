@@ -68,8 +68,22 @@ unused() {
   done
 }
 if unused; then
-  mkdir -p "$HOME/Slate"
-  node "$DIR/cli.js" use "$HOME/Slate" >/dev/null || fail "could not set up $HOME/Slate"
+  pick="$HOME/Slate"
+  # Boards already in a folder picked on the web copy: use that one, so the browser and agents share it.
+  # Read from the terminal, as stdin is this script; with no terminal (CI, say) it is ~/Slate.
+  if (exec 3</dev/tty) 2>/dev/null; then
+    exec 3</dev/tty
+    printf '\nAlready picked a boards folder on %s? Drag it here and press Enter.\nOr just press Enter for %s: ' "$WEB" "$pick"
+    ans=""; IFS= read -r ans <&3 || ans=""
+    exec 3<&-
+    ans=$(printf '%s' "$ans" | sed -e 's/[[:space:]]*$//' -e "s/^[\"']//" -e "s/[\"']\$//" -e 's/\\\(.\)/\1/g') # a dragged path may come quoted or with \ before spaces
+    case "$ans" in "~"*) ans="$HOME${ans#\~}" ;; esac
+    if [ -n "$ans" ]; then
+      [ -d "$ans" ] && pick="$ans" || say "No folder at $ans; using $pick. Change it later with: slate use <folder>"
+    fi
+  fi
+  mkdir -p "$pick"
+  node "$DIR/cli.js" use "$pick" >/dev/null || fail "could not set up $pick"
 fi
 BOARDS=$(node "$DIR/cli.js" status | node -e 'process.stdout.write(require("path").dirname(JSON.parse(require("fs").readFileSync(0, "utf8")).boardsDir))') \
   || fail "slate status failed; run it to see why"
@@ -82,7 +96,7 @@ say "Slate is installed. Your boards are files in $BOARDS."
 say "$agents"
 say ""
 say "  See them   Open $WEB in Chrome, Edge or Brave and pick that folder,"
-say "             or run \`slate start\` for a local copy at http://localhost:4747"
+say "             or run \`slate start\` for a local copy and open the address it prints"
 say "  Use them   Ask your agent: \"put the login flow on my Slate board\""
 say "  Commands   slate status, slate show demo, or just slate for the list"
 if [ -n "$fresh" ]; then

@@ -11,6 +11,7 @@ const ASSETS = path.join(DATA, 'assets');
 const BOARDS = path.join(DATA, 'boards');
 const RUN = path.join(DATA, '.server.json'); // written by a running server: { port, pid, url }
 const WEB = path.join(DATA, '.web.json'); // written every 30 s by a tab on a static host with this folder open: { url, at }
+const MARK = path.join(DATA, '.cli.json'); // { dir }: the slate command uses this folder. public/folder.js looks for it
 const CURSOR = path.join(DATA, '.cursor.json'); // written by the open tab: { board, selected, at }; `cli.js selection` reads it
 const MIME = {
   '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json',
@@ -61,9 +62,11 @@ function exportHTML(n) {
 
 fs.mkdirSync(ASSETS, { recursive: true });
 fs.mkdirSync(BOARDS, { recursive: true });
+const mark = JSON.stringify({ dir: DATA });
+if ((fs.existsSync(MARK) && fs.readFileSync(MARK, 'utf8')) !== mark) fs.writeFileSync(MARK, mark);
 const legacy = path.join(DATA, 'board.json'); // single-board layout from v0.1
 if (fs.existsSync(legacy) && !fs.existsSync(file('main'))) fs.renameSync(legacy, file('main'));
 const demo = path.join(__dirname, 'demo.json');
 if (!list().length) fs.existsSync(demo) ? fs.copyFileSync(demo, file('demo')) : fs.writeFileSync(file('main'), EMPTY); // first run: showcase board
 
-module.exports = { PICK, isDir, dataIn, picked, DATA, ASSETS, BOARDS, RUN, WEB, CURSOR, MIME, NAME, EMPTY, TYPES, file, list, format, read, write, exportHTML };
+module.exports = { PICK, isDir, dataIn, picked, DATA, ASSETS, BOARDS, RUN, WEB, MARK, CURSOR, MIME, NAME, EMPTY, TYPES, file, list, format, read, write, exportHTML };
