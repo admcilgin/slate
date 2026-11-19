@@ -1060,7 +1060,7 @@ $('#findInput').onkeydown = e => { if (e.key === 'Enter') $('#findList button')?
 $('#find').onclick = e => { if (e.target === $('#find')) $('#find').close(); }; // click outside closes
 $('#findBtn').onclick = openFind;
 // How it works: the install line points at wherever this page is served from.
-document.querySelectorAll('code.install').forEach(c => { c.textContent = `curl -fsSL ${location.origin}/install.sh | sh`; });
+document.querySelectorAll('code.install').forEach(c => { c.textContent = `curl -fsSL ${new URL("install.sh", location.href)} | sh`; });
 const help = () => $('#help').showModal();
 $('#helpBtn').onclick = help;
 document.querySelectorAll('.howBtn').forEach(b => { b.onclick = help; });

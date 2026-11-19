@@ -3,6 +3,5 @@ node_modules
 *.tmp
 # your boards and uploaded media stay on your machine
 data/
-.wrangler
 .slate-data
 public/slate.tar.gz

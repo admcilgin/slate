@@ -1,12 +1,12 @@
 #!/bin/sh
 # Installs or updates Slate and puts the `slate` command on your PATH:
-#   curl -fsSL https://slate.appusta.com/install.sh | sh
+#   curl -fsSL https://admcilgin.github.io/slate/install.sh | sh
 # SLATE_HOME (default ~/.slate) is where Slate goes, SLATE_BIN where the command is linked, SLATE_WEB the site
 # to download from. The code comes from the same deploy as this script, so the two always match.
 # Your boards are never touched.
 set -eu
 
-WEB="${SLATE_WEB:-https://slate.appusta.com}"
+WEB="${SLATE_WEB:-https://admcilgin.github.io/slate}"
 DIR="${SLATE_HOME:-$HOME/.slate}"
 say() { printf '%s\n' "$*"; }
 fail() { say "slate: $*" >&2; exit 1; }

@@ -17,14 +17,14 @@ Slate kendi bilgisayarınızda çalışır, her panoyu düz bir JSON dosyası ol
 **1. `slate` komutunu kurun.** [Node.js](https://nodejs.org) 18 veya üstü gerekir. Tek satır Slate'i `~/.slate` klasörüne, panolarınızı `~/Slate` klasörüne koyar, `slate` komutunu PATH'inize ekler ve Claude Code, Codex ve Copilot'a Slate'i tanıtır:
 
 ```sh
-curl -fsSL https://slate.appusta.com/install.sh | sh
+curl -fsSL https://admcilgin.github.io/slate/install.sh | sh
 ```
 
 Güncellemek için aynı satırı tekrar çalıştırın; panolarınız yerinde kalır. Kurulumdan sonra `slate` komutunun bulunması için yeni bir terminal açın. Kaldırmak için `slate uninstall`: komutu, PATH satırını ve ajan becerilerini kaldırır, panolarınıza dokunmaz.
 
 **2. Panolarınızı açın.** İki yol da aynı dosyaları gösterir:
 
-- **Web'de:** [slate.appusta.com](https://slate.appusta.com) adresini Chrome, Edge veya Brave'de açın ve ana klasörünüzdeki `Slate` klasörünü seçin. Tarayıcı bir kez izin ister. Hiçbir şey yüklenmez, hesap yoktur; sayfa bilgisayarınızdaki klasörü okuyup yazar.
+- **Web'de:** [admcilgin.github.io/slate](https://admcilgin.github.io/slate) adresini Chrome, Edge veya Brave'de açın ve ana klasörünüzdeki `Slate` klasörünü seçin. Tarayıcı bir kez izin ister. Hiçbir şey yüklenmez, hesap yoktur; sayfa bilgisayarınızdaki klasörü okuyup yazar.
 - **Yerelde:** `slate start`, sonra yazdığı adresi açın (http://localhost:4747 ya da sıradaki boş port). Her tarayıcıda çalışır.
 
 İlk pano olan `demo`, tüm öğe türlerini gösterir. Sağ üst köşedeki **?** butonu bunların hepsini uygulamanın içinde anlatır.

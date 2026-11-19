@@ -17,14 +17,14 @@ Slate runs on your machine, stores every board as a plain JSON file, and has no 
 **1. Install the `slate` command.** It needs [Node.js](https://nodejs.org) 18 or newer. One line puts Slate in `~/.slate`, your boards in `~/Slate`, the `slate` command on your PATH, and teaches Claude Code, Codex and Copilot about it:
 
 ```sh
-curl -fsSL https://slate.appusta.com/install.sh | sh
+curl -fsSL https://admcilgin.github.io/slate/install.sh | sh
 ```
 
 Run the same line again to update; your boards stay. Open a new terminal afterwards so `slate` is found. To remove it, `slate uninstall`: it takes away the command, its PATH line and the agent skills, and leaves your boards.
 
 **2. Open your boards.** Either way you see the same files:
 
-- **On the web:** open [slate.appusta.com](https://slate.appusta.com) in Chrome, Edge or Brave and pick the `Slate` folder in your home folder. The browser asks once. Nothing is uploaded and there is no account; the page reads and writes the folder on your computer.
+- **On the web:** open [admcilgin.github.io/slate](https://admcilgin.github.io/slate) in Chrome, Edge or Brave and pick the `Slate` folder in your home folder. The browser asks once. Nothing is uploaded and there is no account; the page reads and writes the folder on your computer.
 - **Locally:** `slate start`, then open the address it prints (http://localhost:4747, or the next free port). Works in every browser.
 
 The first board, `demo`, shows every kind of item. The **?** button in the top-right corner explains all this inside the app.
