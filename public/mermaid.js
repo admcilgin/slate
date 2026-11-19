@@ -107,10 +107,15 @@ function mermaidItems(src, prefix = 'mm-') {
   }
   const mid = v => { const [x, y] = at.get(v), [w, h] = sz.get(v); return [x + w / 2, y + h / 2]; };
   edges.forEach((e, k) => {
-    const p = mid(e.a), q = mid(e.b), x = Math.round(Math.min(p[0], q[0])), y = Math.round(Math.min(p[1], q[1]));
+    const ahead = forward.includes(e), P = [mid(e.a), mid(e.b)];
+    if (!ahead) { // a cycle's way back bends out to the side, off the forward edges it would retrace
+      const off = Math.max(C(e.a), C(e.b)) / 2 + 40, m = [(P[0][0] + P[1][0]) / 2, (P[0][1] + P[1][1]) / 2];
+      P.splice(1, 0, across ? [m[0], m[1] + off] : [m[0] + off, m[1]]);
+    }
+    const x = Math.round(Math.min(...P.map(p => p[0]))), y = Math.round(Math.min(...P.map(p => p[1])));
     items.push({
-      id: `${prefix}e${k + 1}`, type: 'line', x, y, points: [[Math.round(p[0]) - x, Math.round(p[1]) - y], [Math.round(q[0]) - x, Math.round(q[1]) - y]],
-      from: prefix + e.a, to: prefix + e.b, ...(forward.includes(e) ? { elbow: true } : {}), // a cycle's way back goes straight, off the elbow it would retrace
+      id: `${prefix}e${k + 1}`, type: 'line', x, y, points: P.map(p => [Math.round(p[0]) - x, Math.round(p[1]) - y]),
+      from: prefix + e.a, to: prefix + e.b, ...(ahead ? { elbow: true } : {}),
       ...(e.head ? { arrow: e.back ? 'both' : true } : {}), ...(e.line.includes('.') ? { dash: true } : {}), ...(e.line.startsWith('=') ? { width: 4 } : {}),
       ...(e.label?.trim() ? { label: clean(e.label) } : {}),
     });
