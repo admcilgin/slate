@@ -20,6 +20,12 @@ Slate runs on your machine, stores every board as a plain JSON file, and has no 
 curl -fsSL https://admcilgin.github.io/slate/install.sh | sh
 ```
 
+On Windows, in PowerShell (Windows 10 or later). The command works in PowerShell, cmd and Git Bash, the shell agents use there:
+
+```powershell
+irm https://admcilgin.github.io/slate/install.ps1 | iex
+```
+
 Run the same line again to update; your boards stay. Open a new terminal afterwards so `slate` is found. To remove it, `slate uninstall`: it takes away the command, its PATH line and the agent skills, and leaves your boards.
 
 **2. Open your boards.** Either way you see the same files:

@@ -1,5 +1,5 @@
 # The public copy of Slate on GitHub Pages: public/ as static files. Boards stay on the visitor's computer (see public/folder.js).
-# The code is packed from the same commit as public/slate.tar.gz, which install.sh downloads,
+# The code is packed from the same commit as public/slate.tar.gz, which install.sh and install.ps1 download,
 # so the site, the installer and the code always match.
 name: Pages
 on:

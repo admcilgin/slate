@@ -20,6 +20,12 @@ Slate kendi bilgisayarınızda çalışır, her panoyu düz bir JSON dosyası ol
 curl -fsSL https://admcilgin.github.io/slate/install.sh | sh
 ```
 
+Windows'ta PowerShell'de (Windows 10 veya üstü). Komut PowerShell'de, cmd'de ve ajanların orada kullandığı Git Bash'te çalışır:
+
+```powershell
+irm https://admcilgin.github.io/slate/install.ps1 | iex
+```
+
 Güncellemek için aynı satırı tekrar çalıştırın; panolarınız yerinde kalır. Kurulumdan sonra `slate` komutunun bulunması için yeni bir terminal açın. Kaldırmak için `slate uninstall`: komutu, PATH satırını ve ajan becerilerini kaldırır, panolarınıza dokunmaz.
 
 **2. Panolarınızı açın.** İki yol da aynı dosyaları gösterir:
