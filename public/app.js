@@ -1117,8 +1117,9 @@ $('#findInput').oninput = findRender;
 $('#findInput').onkeydown = e => { if (e.key === 'Enter') $('#findList button')?.click(); };
 $('#find').onclick = e => { if (e.target === $('#find')) $('#find').close(); }; // click outside closes
 $('#findBtn').onclick = openFind;
-// How it works: the install line points at wherever this page is served from.
-document.querySelectorAll('code.install').forEach(c => { c.textContent = `curl -fsSL ${new URL("install.sh", location.href)} | sh`; });
+// How it works: the install line points at wherever this page is served from, in PowerShell on Windows.
+const win = /^win/i.test(navigator.userAgentData?.platform || navigator.platform);
+document.querySelectorAll('code.install').forEach(c => { c.textContent = win ? `irm ${new URL('install.ps1', location.href)} | iex` : `curl -fsSL ${new URL('install.sh', location.href)} | sh`; });
 const help = () => $('#help').showModal();
 $('#helpBtn').onclick = help;
 document.querySelectorAll('.howBtn').forEach(b => { b.onclick = help; });

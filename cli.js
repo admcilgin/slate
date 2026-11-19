@@ -144,7 +144,7 @@ function up() {
   let s = server();
   if (s) return s;
   const log = path.join(L.DATA, '.server.log'), js = path.join(__dirname, 'server.js');
-  require('child_process').spawn(process.execPath, [js], { detached: true, stdio: ['ignore', 'ignore', fs.openSync(log, 'w')] }).unref();
+  require('child_process').spawn(process.execPath, [js], { detached: true, windowsHide: true, stdio: ['ignore', 'ignore', fs.openSync(log, 'w')] }).unref();
   for (let i = 0; i < 30 && !(s = server()); i++) Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 100);
   if (!s) die(`server did not start:\n${fs.readFileSync(log, 'utf8').trim().split('\n').slice(0, 6).join('\n') || '(no output)'}\nRun \`node "${js}"\` to try it yourself.`);
   return { ...s, mine: true };
@@ -154,7 +154,9 @@ function up() {
 function chrome(args) {
   const bins = [process.env.CHROME, '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', '/Applications/Chromium.app/Contents/MacOS/Chromium',
     '/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge', '/Applications/Brave Browser.app/Contents/MacOS/Brave Browser',
-    'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe', 'google-chrome', 'chromium', 'chromium-browser', 'microsoft-edge'].filter(Boolean);
+    ...[process.env.LOCALAPPDATA, process.env.ProgramFiles, process.env['ProgramFiles(x86)']].filter(Boolean).flatMap(d => // Windows: Edge is always there
+      [['Google', 'Chrome', 'chrome.exe'], ['Microsoft', 'Edge', 'msedge.exe'], ['BraveSoftware', 'Brave-Browser', 'brave.exe']].map(([v, b, exe]) => path.join(d, v, b, 'Application', exe))),
+    'google-chrome', 'chromium', 'chromium-browser', 'microsoft-edge'].filter(Boolean);
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'slate-')); // own profile, so it never collides with the user's open browser
   try {
     for (const bin of bins) {
@@ -169,7 +171,8 @@ function chrome(args) {
 
 // Agents that can load the skill, and the skill as `install` writes it for this copy of Slate.
 const AGENTS = () => [['Claude Code', path.join(os.homedir(), '.claude')], ['Codex', process.env.CODEX_HOME || path.join(os.homedir(), '.codex')], ['GitHub Copilot', path.join(os.homedir(), '.copilot')]];
-const skillText = () => fs.readFileSync(path.join(__dirname, 'skills', 'slate', 'SKILL.md'), 'utf8').replaceAll('{{SLATE}}', __dirname);
+const SLATE = __dirname.split(path.sep).join('/'); // C:/Users/… on Windows: Git Bash would eat the backslashes, and node takes either
+const skillText = () => fs.readFileSync(path.join(__dirname, 'skills', 'slate', 'SKILL.md'), 'utf8').replaceAll('{{SLATE}}', SLATE);
 const skillVersion = s => /^\s+version:\s*"?([\w.]+)/m.exec(s)?.[1] || 'none';
 // Each agent on this machine and its skill: "ok", "not installed", or how it differs from this Slate's.
 function skills() {
@@ -488,7 +491,7 @@ const commands = {
     }
     for (const [, d] of AGENTS()) {
       const dir = path.join(d, 'skills', 'slate'); // only a skill that points at this copy (install writes the path into it)
-      try { if (fs.readFileSync(path.join(dir, 'SKILL.md'), 'utf8').includes(__dirname)) { fs.rmSync(dir, { recursive: true }); done.push(dir); } } catch {}
+      try { if (fs.readFileSync(path.join(dir, 'SKILL.md'), 'utf8').includes(SLATE)) { fs.rmSync(dir, { recursive: true }); done.push(dir); } } catch {}
     }
     for (const rc of ['.zshrc', '.bash_profile', '.bashrc', '.profile', '.config/fish/config.fish'].map(f => path.join(home, f))) {
       try {
@@ -496,6 +499,12 @@ const commands = {
         if (u !== t) { fs.writeFileSync(rc, u); done.push(`the PATH line in ${rc}`); }
       } catch {}
     }
+    if (process.platform === 'win32') try { // install.ps1 put <this>\bin on the user PATH; the folder goes with this copy below
+      const r = require('child_process').execFileSync('powershell', ['-NoProfile', '-Command', "$p = [Environment]::GetEnvironmentVariable('Path', 'User'); "
+        + "$q = ($p -split ';' | Where-Object { $_ -and $_ -ne $env:SLATE_BIN }) -join ';'; if ($p -and $q -ne $p) { [Environment]::SetEnvironmentVariable('Path', $q, 'User'); 'removed' }"],
+        { env: { ...process.env, SLATE_BIN: path.join(__dirname, 'bin') }, encoding: 'utf8' });
+      if (r.trim() === 'removed') done.push(`${path.join(__dirname, 'bin')} from your user PATH`);
+    } catch {} // no PowerShell: the entry stays, pointing at a folder that is gone
     if (move) { // without the old server, cursor and marker files
       fs.cpSync(L.DATA, keep, { recursive: true, filter: f => f === L.DATA || !path.basename(f).startsWith('.') });
       done.push(`moved your boards to ${keep}`);
