@@ -1,5 +1,7 @@
 ---
 name: slate
+metadata:
+  version: "3"
 description: Read and edit the user's Slate whiteboard boards from any project. Use when the user mentions Slate, their whiteboard or board ("put this on my board", "add to the board", "what's on my board", "tahtaya ekle", "boarda yaz"), or asks to lay out a diagram, flow, screen annotation, endpoint or JSON response, task list, kanban board, metric cards, callouts, table, chart, timeline or notes visually, or to start a new board for a project or topic ("yeni pano aç", "bu proje için board oluştur"). Works without opening the app or running its server.
 ---
 
@@ -13,62 +15,84 @@ Run every command as `slate <command>`. If the shell cannot find `slate`, use `n
 
 | Command | What it does |
 |---|---|
-| `status` | Where Slate lives, the list of boards, the URL and port if the server is running, and under `web` the web copy that last opened these boards (`open`: a tab has them open now) |
+| `status` | Where Slate lives, the boards, the server URL if running, under `web` the web copy that last opened them (`open`: a tab has them now), and under `skills` whether each agent's Slate skill is current |
 | `boards` | Boards with item counts |
-| `show <board>` | Every item on the board, one JSON object per line |
+| `map <board> [frame]` | **Read the board here first.** One line per item: `id type x,y wxh "text" style`, nested under its frame; arrows as `a -> b "label"`; where the free space is. Heights are the rendered ones |
+| `show <board> [id…]` | Full JSON of items, one per line. Ids narrow it; a frame id brings its contents. Use it before a `set` that needs the current field values |
+| `types` | Every item type with its fields, default size and the palette (~500 tokens). Run it once before your first `add` |
 | `new <board>` | Create an empty board |
-| `add <board> '<json>'` | Add one item or an array of items. Prints the new ids |
-| `mermaid <board> '<flowchart>'` | Draw a Mermaid flowchart as shapes and arrows (or a file, or `-` for stdin). The quickest way to a flow or architecture diagram |
-| `set <board> <id> '<json>'` | Merge fields into an item. A `null` value removes that field |
+| `add <board> '<json>'` | Add one item or an array. `--at=below\|right\|<frame id>`: coordinates in the batch are relative (start at 0,0) and the CLI puts it in free space or inside that frame (the frame grows). Prints the ids and `warn` |
+| `copy <board> <id…>` | Duplicate items with new ids (`id-2`); a frame brings its contents and arrows. `--to=<board>`, `--at=` as in `add` |
+| `mermaid <board> '<flowchart>'` | Mermaid `flowchart` → shapes and arrows (or a file, or `-`). Quickest way to a flow or architecture diagram. `--at=` as in `add` |
+| `set <board> <id> '<json>'` | Merge fields into an item. `null` removes a field |
 | `rm <board> <id> [id…]` | Delete items |
-| `rm-board <board>` | Delete a whole board (only when the user asks) |
-| `asset <file>` | Copy an image or video into Slate. Prints the `src` to use in an `image` or `video` item |
-| `cards <board>` | Every kanban card with its column, title and detail (lines after the first) |
-| `move <board> "<card>" "<column>"` | Move a kanban card, matched by title, to another column. `--note="…"` adds a line to its detail |
-| `selection` | The items the user has selected in the open tab: what "this" or "these" refers to |
-| `wait <board> --timeout=<s>` | Block until the user changes the board, then print what was added, changed and removed, and what is selected |
-| `shot <board> [id]` | Write a PNG of the board (or of one item, or a frame with its contents) and print its path, for you to look at |
-| `pdf <board> [id]` / `html <board>` | Write a PDF, or one self-contained HTML file that opens without Slate, to give to someone. `--out=<file>` |
-| `use [folder\|default]` | Keep boards in another folder (one the user picked on the web copy), or back in Slate's own `data/`. With no folder, prints where they are |
+| `rm-board <board>` | Delete a board (only when the user asks) |
+| `asset <file>` | Copy an image or video into Slate; prints the `src` to use |
+| `cards <board>` | Every kanban card: column, title and detail |
+| `move <board> "<card>" "<column>"` | Move a kanban card by title. `--note="…"` adds a line to its detail |
+| `selection` | The items the user has selected in the open tab: what "this" or "these" means |
+| `wait <board> --timeout=<s>` | Block until the user changes the board; prints added, changed (with `was`), removed, selected |
+| `shot <board> [id]` | PNG of the board, an item or a frame, to look at. Only for freehand sketches, screenshots, or when `map` is not enough |
+| `pdf <board> [id]` / `html <board>` | A PDF, or one self-contained HTML file, to give to someone. `--out=<file>` |
+| `use [folder\|default]` | Keep boards in another folder, or back in Slate's own `data/` |
 | `start` / `stop` | Start the server in the background and print the URL, or stop it |
 
-For large or quote-heavy JSON, pass `-` and pipe it in: `slate add main - < items.json`, or use a heredoc. Board names with spaces need quoting.
+For large or quote-heavy JSON, pipe it: `slate add main - <<'JSON' … JSON`. Board names with spaces need quoting. Output is one-line JSON.
 
 ## How to work
 
-1. **Find the board.** Run `status`. If the boards the user means are not listed, they may keep them in a folder of their own (picked on the web copy): ask for its path and run `use <folder>` once; every command then works there. If the user didn't name a board and there are several, ask which one, or create a new one with `new` when the work is clearly its own topic. A new project gets its own board: `new "<project name>"`, then one `add` with the starting layout (for example a title, a `kanban` for the work, `stat` cards for the numbers that matter and a `callout` for open decisions).
-2. **Look before you write.** Run `show <board>` so you know what is there and where the free space is. Each item has `x`, `y`, `w`, `h` in pixels; `x` grows right and `y` grows down.
-3. **Read the item reference once per session** before your first `add`: `{{SLATE}}/AGENTS.md` lists every item type, its fields, sizes, colours and layout tips. Only use types and fields documented there.
-4. **Add in one call.** Build the whole layout as an array and send it with a single `add`, giving every item explicit `x`/`y` so nothing overlaps. Items without a position are stacked below the existing content. Give items readable ids (`"login-api"`) so you can `set` them later.
-5. **Change with `set`, not delete-and-add.** `set` keeps the item's id and position.
-6. **Tell the user where to look.** `new` and `add` print the board's link as `url`: the local server's if it is running, else the web copy's from `status` → `web`. If `url` is null, give them `https://admcilgin.github.io/slate/#<board>`: it needs no server or account and opens in Chrome, Edge or Brave. The first time, it asks for a folder; tell them to pick `{{SLATE}}/data`. It reads and writes the same files as you, so your changes show up there within a second. Run `start` only if they want the local copy or use Safari or Firefox. You never need the server for your own reads and writes.
-
-7. **Look at the picture when the numbers are not enough.** `shot` then read the PNG: to understand a hand-drawn sketch or wireframe (freehand strokes are unreadable as JSON), and to check a layout you just wrote for overlaps. Needs a Chromium-family browser installed.
-8. **Let the user point.** If they say "this" or "the selected ones", run `selection`. If they want to steer you from the board ("watch the board", "I'll mark what to change"), loop on `wait <board> --timeout=<s>`: act on what they added or changed, then wait again.
-9. **Work a kanban like a task queue.** When the user asks you to take tasks from their board: `cards` to read them (the detail is the brief), `move` the card to the in-progress column before you start, and to the done column only once the work is finished and checked. If you get stuck, leave the card and add `--note="<what is blocking>"`. Use `move`, not `set` on `columns`.
+1. **Find the board.** `status`. If the boards the user means are not listed, they may keep them in a folder of their own: ask for its path and run `use <folder>` once. If they didn't name a board and there are several, ask, or `new "<topic>"` when the work is its own topic.
+2. **Read with `map`, not a screenshot.** It gives ids, positions, rendered sizes, text, frames, arrows and free space in a few tokens. `show <board> <id>` only for the full fields of what you will change.
+3. **Write in one call, relative, and let the CLI place it.** Build the whole layout as an array starting at 0,0, give every item a readable id (`"login-api"`) and explicit relative `x`/`y`, and send it with `add --at=below` (or `right`, or a frame id). Lay items out on a grid: 20–40 px gaps, shapes 160×100, notes 200×200 (see `types`).
+4. **Read the reply.** `warn` lists overlaps, items crossing a frame's edge, unknown fields and lines to missing ids. Fix them with `set` (move `x`/`y`) until there is no `warn`. No screenshot needed.
+5. **Change with `set`, not delete-and-add**; it keeps the id. To change a list (`tasks`, `rows`, `data`, `events`, `columns`), `set` the whole array. Duplicate a section with `copy`.
+6. **Tell the user where to look.** `new` and `add` print `url`. If it is null, give `https://admcilgin.github.io/slate/#<board>` (Chrome, Edge or Brave; the first time it asks for a folder: `{{SLATE}}/data`). Run `start` only if they want the local copy. You never need the server yourself.
+7. **Let the user point.** "this" / "the selected ones" → `selection`. "Watch the board" → loop on `wait <board> --timeout=<s>` and act on what they added or changed. Freehand strokes (`draw`) are only numbers: `shot` to see them.
+8. **Work a kanban like a task queue.** `cards`, `move` the card to the in-progress column before starting, to done only when finished and checked; if stuck, leave it with `--note="<what blocks>"`. Use `move`, not `set` on `columns`.
 
 ## Rules
 
-- Change only what the user asked for. Never remove or rewrite items you didn't create in this task unless asked.
-- The user may be editing the same board. Run `show` again right before a `set` or `rm` if time has passed since you last looked.
-- Images and videos must go through `asset` (or be http(s) URLs). Don't reference paths outside Slate.
-- A `frame` is a named region. To put items "in" a frame, give them positions inside its rectangle; to make a new section, add the frame first and its contents after it in the same `add`.
-- For a flowchart use `shape` items (`diamond` for decisions) joined by `line` items with `from`, `to`, `arrow` and `elbow`: true.
-- To update a task list, kanban, table, chart or timeline, `set` the whole array field (`tasks`, `rows`, `data`, `events`, `columns`) with the changed copy.
+- Change only what the user asked for. Never remove or rewrite items you didn't create in this task unless asked; leave `locked` items alone.
+- The user may be editing the same board: `map` or `show` again before a `set` or `rm` if time has passed.
+- Images and videos go through `asset` (or are http(s) URLs).
+- Arrows: `{"type":"line","from":"<id>","to":"<id>","arrow":true}` needs no coordinates and follows the items. Add `"elbow":true` in flowcharts, `"label"` for yes/no.
+- A `frame` is a region, not a parent: an item is "in" it when it lies fully inside. Put the frame first in the array, contents after, ~40 px padding and 60 px at the top. `add --at=<frame id>` does this for you.
 
-## Example
+## Layouts to copy
 
-Annotate a screen with its API call:
+Each is a batch at relative 0,0: send it with `add <board> --at=below - <<'JSON'`, change the texts and ids.
 
-```sh
-slate asset ./login.png        # → {"src":"/assets/abc-login.png"}
-slate add main - <<'JSON'
-[
-  {"id":"login-shot","type":"image","x":80,"y":700,"w":360,"h":640,"src":"/assets/abc-login.png"},
-  {"id":"login-pin","type":"pin","x":240,"y":1180,"text":"1"},
-  {"id":"login-arrow","type":"line","from":"login-pin","to":"login-api","arrow":true,"label":"onSubmit"},
-  {"id":"login-api","type":"code","x":596,"y":840,"w":360,"title":"POST /api/login → 200","text":{"token":"…","user":{"id":42}}}
-]
-JSON
-slate set main login-api '{"title":"POST /api/v2/login → 200"}'
+Project start (title, work, numbers, open decision):
+```json
+[{"id":"p-title","type":"text","x":0,"y":0,"w":600,"text":"Project","size":40,"bold":true},
+{"id":"p-work","type":"kanban","x":0,"y":80,"w":620,"columns":[{"title":"To do","cards":["First task\ndetail"]},{"title":"Doing","cards":[]},{"title":"Done","cards":[]}]},
+{"id":"p-users","type":"stat","x":660,"y":80,"label":"Users","value":"0","delta":"+0%"},
+{"id":"p-rev","type":"stat","x":880,"y":80,"label":"Revenue","value":"$0"},
+{"id":"p-open","type":"callout","x":660,"y":220,"w":420,"title":"Open decision","text":"…","color":"#ff9500"}]
+```
+
+Section with a flow (or use `mermaid` for anything bigger than four boxes):
+```json
+[{"id":"s-frame","type":"frame","x":0,"y":0,"w":680,"h":220,"title":"Checkout"},
+{"id":"s-a","type":"shape","x":40,"y":60,"text":"Cart","color":"#007aff","fill":true},
+{"id":"s-b","type":"shape","shape":"diamond","x":240,"y":55,"w":170,"h":110,"text":"Paid?"},
+{"id":"s-c","type":"shape","x":470,"y":60,"text":"Receipt","color":"#34c759","fill":true},
+{"id":"s-ab","type":"line","from":"s-a","to":"s-b","arrow":true},
+{"id":"s-bc","type":"line","from":"s-b","to":"s-c","arrow":true,"label":"yes"}]
+```
+
+Endpoint with request and response:
+```json
+[{"id":"ep","type":"shape","x":0,"y":0,"w":200,"h":80,"text":"POST /api/login","color":"#af52de","fill":true},
+{"id":"ep-req","type":"code","x":240,"y":0,"w":340,"title":"Request","text":{"email":"…","password":"…"}},
+{"id":"ep-res","type":"code","x":620,"y":0,"w":340,"title":"200","text":{"token":"…","user":{"id":42}}},
+{"id":"ep-1","type":"line","from":"ep","to":"ep-req","arrow":true},
+{"id":"ep-2","type":"line","from":"ep-req","to":"ep-res","arrow":true}]
+```
+
+Annotated screenshot (`slate asset ./login.png` first; one group so it moves as one):
+```json
+[{"id":"shot","type":"image","x":0,"y":0,"w":360,"h":640,"src":"/assets/<from asset>","group":"login"},
+{"id":"pin1","type":"pin","x":160,"y":480,"text":"1","group":"login"},
+{"id":"n1","type":"note","x":400,"y":440,"w":240,"h":120,"text":"1  Submit calls POST /api/login","group":"login"}]
 ```

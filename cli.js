@@ -10,14 +10,22 @@ const pos = args.filter(a => !a.startsWith('--'));
 
 const HELP = `Usage: slate <command>. Boards live in ${L.BOARDS}
 
-  status                        where Slate lives, its boards, the URL if the server is running, and the web copy that last opened them
+  status                        where Slate lives, its boards, the URL if the server is running, the web copy that last opened them,
+                                and each agent's skill (ok, not installed, or out of date)
   start                         start the server in the background (only needed for a human to look)
   stop                          stop the server
   boards                        list boards with item counts
-  show <board> [--full]         print the board, one item per line (--full includes freehand points)
+  map <board> [id]              the layout in few tokens: every item as id, type, x,y, w×h (rendered), text; nested by
+                                frame; arrows as a→b; where the free space is. Read this first; show for full fields
+  show <board> [id…] [--full]   items as JSON, one per line; ids narrow it (a frame brings its contents)
+  types                         every item type with its fields, default size and colours
   new <board>                   create an empty board
-  add <board> [json|-]          add one item or an array of items; prints the new ids
-  mermaid <board> [file|text|-] draw a Mermaid flowchart as shapes and arrows, below what is there (--x=, --y= to place it)
+  add <board> [json|-]          add one item or an array of items; prints the new ids and any overlaps
+                                --at=below|right|<frame id> (or --x=, --y=) treats the batch's coordinates as relative
+                                and puts it in free space, or inside that frame (which grows to fit)
+  copy <board> <id…>            duplicate items (a frame brings its contents and arrows) with new ids; --to=<board>,
+                                --at= / --x= / --y= as in add (default: below everything)
+  mermaid <board> [file|text|-] draw a Mermaid flowchart as shapes and arrows, below what is there (--at=, --x=, --y=)
   set <board> <id> [json|-]     merge fields into an item (a null value removes the field)
   rm <board> <id> [id…]         delete items
   rm-board <board>              delete a board
@@ -40,11 +48,63 @@ JSON comes from the argument, or from stdin when it is "-" or missing.
 Item types and fields are documented in ${path.join(__dirname, 'AGENTS.md')}`;
 
 const die = m => { console.error('slate: ' + m); process.exit(1); };
-const out = v => console.log(typeof v === 'string' ? v : JSON.stringify(v, null, 2));
+const out = v => console.log(typeof v === 'string' ? v : JSON.stringify(v)); // one line: agents read it, and indentation is tokens
 const uid = () => Math.random().toString(36).slice(2, 9);
 const opt = k => [...flags].find(f => f.startsWith(`--${k}=`))?.slice(k.length + 3);
 const brief = i => i.type === 'draw' ? { ...i, points: `<${i.points?.length || 0} points>` } : i; // freehand strokes are long and say nothing as numbers; use shot
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+const attached = i => i.type === 'line' && (i.from || i.to);
+
+// Bounds of what is drawn (attached lines follow their items, so they are left out).
+function bounds(items) {
+  const bs = items.filter(i => !attached(i)).map(L.box);
+  return bs.length ? { x: Math.min(...bs.map(b => b.x)), y: Math.min(...bs.map(b => b.y)), r: Math.max(...bs.map(b => b.x + b.w)), b: Math.max(...bs.map(b => b.y + b.h)) } : null;
+}
+const inFrame = (items, f) => items.filter(i => i !== f && !attached(i) && L.inside(L.box(i), L.box(f)));
+
+// Items named by id; a frame brings what lies inside it, and lines joining two of them come along.
+function expand(items, ids) {
+  const missing = ids.filter(id => !items.some(i => i.id === id));
+  if (missing.length) die(`no such item: ${missing.join(', ')}`);
+  const set = new Set(ids);
+  for (const f of items.filter(i => set.has(i.id) && i.type === 'frame')) for (const i of inFrame(items, f)) set.add(i.id);
+  for (const l of items.filter(attached)) if (set.has(l.from) && set.has(l.to)) set.add(l.id);
+  return items.filter(i => set.has(i.id));
+}
+
+// --at / --x / --y: move the batch (its own coordinates taken as relative) to free space or into a frame. Returns the frame it grew, if any.
+function place(b, batch) {
+  const at = opt('at'), X = opt('x'), Y = opt('y');
+  if (!at && X == null && Y == null) return null;
+  const own = bounds(batch) || { x: 0, y: 0, r: 0, b: 0 }, all = bounds(b.items), f = at && !['below', 'right'].includes(at) && b.items.find(i => i.id === at);
+  if (at && !['below', 'right'].includes(at) && f?.type !== 'frame') die(`--at takes below, right or the id of a frame; "${at}" is ${f ? 'a ' + f.type : 'not on the board'}`);
+  let x = 80, y = 80;
+  if (f) {
+    const c = bounds(inFrame(b.items, f)), fits = c && c.r + 30 + own.r - own.x <= f.x + f.w - 40 && c.y + own.b - own.y <= f.y + f.h - 40;
+    [x, y] = !c ? [f.x + 40, f.y + 60] : fits ? [c.r + 30, c.y] : [f.x + 40, c.b + 30]; // beside what is there while it fits, else below (the frame grows)
+  }
+  else if (all && at === 'right') { x = all.r + 80; y = all.y; }
+  else if (all) { x = all.x; y = all.b + 80; }
+  const dx = (X != null ? +X : x) - own.x, dy = (Y != null ? +Y : y) - own.y;
+  for (const i of batch) if (!attached(i) || i.x != null) { i.x = (i.x || 0) + dx; i.y = (i.y || 0) + dy; }
+  if (!f) return null;
+  const nb = bounds(batch), grow = { w: Math.max(f.w, nb.r + 40 - f.x), h: Math.max(f.h, nb.b + 40 - f.y) };
+  if (grow.w === f.w && grow.h === f.h) return null;
+  Object.assign(f, grow);
+  return f.id;
+}
+
+// What add, set and copy say back about what they wrote: overlaps, unknown fields, lines to nothing.
+function warnings(items, ids) {
+  const byId = new Set(items.map(i => i.id)), w = L.clashes(items, ids);
+  for (const i of items.filter(i => ids.has(i.id))) {
+    const u = L.unknown(i);
+    if (u.length) w.push(`${i.id}: ${i.type} has no field ${u.join(', ')} (see slate types)`);
+    for (const k of ['from', 'to']) if (i[k] && !byId.has(i[k])) w.push(`${i.id}: ${k} "${i[k]}" is not on the board`);
+  }
+  return w;
+}
+const report = (o, items, ids) => { const w = warnings(items, ids); out(w.length ? { ...o, warn: w } : o); };
 
 function name(n, mustExist = true) {
   if (!n || !L.NAME.test(n)) die(`bad or missing board name${n ? ` "${n}"` : ''} (letters, digits, spaces, - and _)`);
@@ -107,6 +167,25 @@ function chrome(args) {
   throw new Error('needs Chrome, Chromium, Edge or Brave. Set CHROME=/path/to/browser if it is somewhere unusual');
 }
 
+// Agents that can load the skill, and the skill as `install` writes it for this copy of Slate.
+const AGENTS = () => [['Claude Code', path.join(os.homedir(), '.claude')], ['Codex', process.env.CODEX_HOME || path.join(os.homedir(), '.codex')], ['GitHub Copilot', path.join(os.homedir(), '.copilot')]];
+const skillText = () => fs.readFileSync(path.join(__dirname, 'skills', 'slate', 'SKILL.md'), 'utf8').replaceAll('{{SLATE}}', __dirname);
+const skillVersion = s => /^\s+version:\s*"?([\w.]+)/m.exec(s)?.[1] || 'none';
+// Each agent on this machine and its skill: "ok", "not installed", or how it differs from this Slate's.
+function skills() {
+  const want = skillText(), v = skillVersion(want);
+  return { version: v, ...Object.fromEntries(AGENTS().filter(([, d]) => fs.existsSync(d)).map(([n, d]) => {
+    let have;
+    try { have = fs.readFileSync(path.join(d, 'skills', 'slate', 'SKILL.md'), 'utf8'); } catch { return [n, 'not installed']; }
+    return [n, have === want ? 'ok' : skillVersion(have) !== v ? `version ${skillVersion(have)}, this Slate has ${v}` : 'differs from this Slate'];
+  })) };
+}
+// On `slate` and `slate start`: tell the user when an agent has no skill or an older one. stderr, so stdout stays parseable.
+function checkSkills() {
+  const { version, ...agents } = skills(), bad = Object.entries(agents).filter(([, st]) => st !== 'ok').map(([n, st]) => `${n}: ${st}`);
+  if (bad.length) console.error(`slate: the agent skill is missing or out of date (${bad.join('; ')}). Run \`slate install\` to update it.`);
+}
+
 // shot / pdf: let the real app lay the board out (see printSetup in app.js) and capture that.
 function capture(kind, ext) {
   const n = name(pos[0]), id = pos[1] || '';
@@ -130,10 +209,10 @@ function capture(kind, ext) {
 const commands = {
   status() {
     const s = server();
-    out({ dir: __dirname, boardsDir: L.BOARDS, assetsDir: L.ASSETS, boards: L.list(), running: !!s, url: s?.url || null, port: s?.port || null, web: web() });
+    out({ dir: __dirname, boardsDir: L.BOARDS, assetsDir: L.ASSETS, boards: L.list(), running: !!s, url: s?.url || null, port: s?.port || null, web: web(), skills: skills() });
   },
 
-  start() { out(up().url); },
+  start() { out(up().url); checkSkills(); },
 
   stop() {
     const s = server();
@@ -145,8 +224,50 @@ const commands = {
   boards() { out(L.list().map(n => `${n}\t${L.read(n).items.length} items`).join('\n')); },
 
   show() {
-    const n = name(pos[0]), b = L.read(n);
-    out(b.items.map(i => JSON.stringify(flags.has('--full') ? i : brief(i))).join('\n') || '(empty board)');
+    const n = name(pos[0]), b = L.read(n), items = pos.length > 1 ? expand(b.items, pos.slice(1)) : b.items;
+    out(items.map(i => JSON.stringify(flags.has('--full') ? i : brief(i))).join('\n') || '(empty board)');
+  },
+
+  map() {
+    const n = name(pos[0]), b = L.read(n), all = pos[1] ? expand(b.items, [pos[1]]) : b.items;
+    const cut = (s, k = 60) => { s = String(s ?? '').replace(/\s*\n\s*/g, ' / ').trim(); return s.length > k ? s.slice(0, k - 1) + '…' : s; };
+    const what = i => ({
+      code: () => `${i.title ? i.title + ': ' : ''}${typeof i.text === 'string' ? `${i.text.split('\n').length} lines` : 'JSON'}`,
+      callout: () => `${i.title || ''}: ${i.text || ''}`,
+      link: () => i.title || i.url, embed: () => i.url, image: () => i.alt || i.src, video: () => i.src,
+      stat: () => `${i.label} = ${i.value}${i.delta ? ' ' + i.delta : ''}`,
+      table: () => `${i.rows?.length}×${i.rows?.[0]?.length}: ${(i.rows?.[0] || []).join(' | ')}`,
+      tasks: () => `${i.title || ''} [${(i.tasks || []).filter(t => t.done).length}/${(i.tasks || []).length} done]`,
+      kanban: () => (i.columns || []).map(c => `${c.title} ${(c.cards || []).filter(Boolean).length}`).join(' | '),
+      chart: () => `${i.title || ''} (${i.data?.length || 0} points)`, timeline: () => `${i.title || ''} (${i.events?.length || 0} events)`,
+      draw: () => `${i.points?.length || 0} points`, frame: () => i.title, line: () => i.label,
+    }[i.type] || (() => i.text))();
+    const style = i => ['color', 'fill', 'dash', 'bold', 'size', 'collapsed', 'locked', 'group', 'href'].filter(k => i[k] != null && i[k] !== false)
+      .map(k => i[k] === true ? k : k === 'color' ? i[k] : `${k}=${i[k]}`).join(' ');
+    const row = i => {
+      const r = L.box(i), d = cut(what(i)), st = style(i);
+      return `${i.id} ${i.type}${i.shape && i.shape !== 'rect' ? '/' + i.shape : i.chart ? '/' + i.chart : ''} ${Math.round(r.x)},${Math.round(r.y)} ${Math.round(r.w)}x${Math.round(r.h)}${d ? ' ' + JSON.stringify(d) : ''}${st ? ' ' + st : ''}`;
+    };
+    const lines = [], placed = new Set(), body = all.filter(i => !attached(i));
+    const frames = body.filter(i => i.type === 'frame').sort((a, c) => L.box(c).w * L.box(c).h - L.box(a).w * L.box(a).h); // biggest first, so nesting works
+    const parent = new Map(body.map(i => [i.id, frames.filter(f => f !== i && L.inside(L.box(i), L.box(f))).pop()?.id]));
+    const walk = (pid, ind) => body.filter(i => parent.get(i.id) === pid).forEach(i => {
+      if (i.type !== 'frame') return lines.push(ind + row(i));
+      const kids = body.filter(k => parent.get(k.id) === i.id), c = bounds(kids), fb = L.box(i);
+      lines.push(`${ind}[${row(i)}]${c && c.b + 60 < fb.y + fb.h ? ` free inside from y=${Math.round(c.b + 30)}` : !c ? ' empty' : ' full'}`);
+      walk(i.id, ind + '  ');
+    });
+    walk(undefined, '');
+    const arrows = all.filter(attached).map(l => `${l.id}: ${l.from || '?'} ${l.arrow === 'both' ? '<->' : l.arrow ? '->' : '--'} ${l.to || '?'}${l.label ? ' ' + JSON.stringify(cut(l.label, 40)) : ''}${l.dash ? ' dash' : ''}`);
+    const bb = bounds(all);
+    out([`${n}: ${all.length} items${bb ? `, drawn within ${Math.round(bb.x)},${Math.round(bb.y)} to ${Math.round(bb.r)},${Math.round(bb.b)}; free space below y=${Math.round(bb.b + 80)} and right of x=${Math.round(bb.r + 80)}` : ''}`,
+      '(id type x,y wxh "text" style; h is the rendered height; [frame] holds the indented items)', ...lines, ...(arrows.length ? ['arrows:', ...arrows] : [])].join('\n'));
+  },
+
+  types() {
+    out(['Every item: id type x y w h, optional color group locked href; text style: size bold italic align. Positions in px, x right, y down.',
+      'Palette: gray #8e8e93, red #ff3b30, orange #ff9500, yellow #ffcc00, green #34c759, blue #007aff, purple #af52de. Omit color for default ink.',
+      ...Object.entries(L.SPEC).map(([t, [w, h, f, d]]) => `${t}${w ? ` ${w}x${h}` : ''}: ${f}. ${d}`)].join('\n'));
   },
 
   new() {
@@ -157,7 +278,7 @@ const commands = {
 
   add() {
     const n = name(pos[0]), b = L.read(n), ids = new Set(b.items.map(i => i.id));
-    const items = [].concat(input(pos[1]));
+    const items = [].concat(input(pos[1])), grew = place(b, items);
     for (const it of items) {
       if (!it || !L.TYPES.includes(it.type)) die(`unknown type "${it?.type}". Types: ${L.TYPES.join(', ')}`);
       if (it.id != null && ids.has(String(it.id))) die(`id "${it.id}" already exists on "${n}"; use set to change it`);
@@ -165,12 +286,27 @@ const commands = {
       ids.add(it.id);
       if (it.x == null || it.y == null) { // no position given: put it under everything else
         it.x ??= 80;
-        it.y ??= b.items.length ? Math.max(...b.items.map(i => (i.y || 0) + (i.h || 120))) + 40 : 80;
+        it.y ??= (bounds(b.items)?.b ?? 40) + 40;
       }
       b.items.push(it);
     }
     L.write(n, b);
-    out({ board: n, added: items.map(i => i.id), url: urlFor(n) });
+    report({ board: n, added: items.map(i => i.id), ...(grew && { grew }), url: urlFor(n) }, b.items, new Set([...items.map(i => i.id), grew]));
+  },
+
+  copy() {
+    const n = name(pos[0]), to = opt('to') ? name(opt('to')) : n, src = L.read(n), b = to === n ? src : L.read(to);
+    if (pos.length < 2) die('usage: copy <board> <id…> [--to=<board>] [--at=below|right|<frame>]');
+    const items = structuredClone(expand(src.items, pos.slice(1))), taken = new Set(b.items.map(i => i.id));
+    let k = 2;
+    while (items.some(i => taken.has(`${i.id}-${k}`))) k++;
+    const old = new Set(items.map(i => i.id)), re = id => old.has(id) ? `${id}-${k}` : id;
+    for (const i of items) { i.id = re(i.id); if (i.from) i.from = re(i.from); if (i.to) i.to = re(i.to); if (i.group) i.group += `-${k}`; delete i.locked; }
+    if (!opt('at') && opt('x') == null && opt('y') == null) flags.add('--at=below');
+    const grew = place(b, items);
+    b.items.push(...items);
+    L.write(to, b);
+    report({ board: to, added: items.map(i => i.id), ...(grew && { grew }), url: urlFor(to) }, b.items, new Set([...items.map(i => i.id), grew]));
   },
 
   mermaid() {
@@ -183,11 +319,11 @@ const commands = {
       if (!items.some(i => ids.has(i.id))) break;
       p = `mm${k}-`;
     }
-    const x0 = Number(opt('x') ?? 80), y0 = Number(opt('y') ?? (b.items.length ? Math.max(...b.items.map(i => (i.y || 0) + (i.h || 120))) + 80 : 80));
-    for (const i of items) { i.x += x0; i.y += y0; }
+    if (!opt('at') && opt('x') == null && opt('y') == null) flags.add('--at=below');
+    const grew = place(b, items);
     b.items.push(...items);
     L.write(n, b);
-    out({ board: n, added: items.map(i => i.id), url: urlFor(n) });
+    report({ board: n, added: items.map(i => i.id), ...(grew && { grew }), url: urlFor(n) }, b.items, new Set([...items.map(i => i.id), grew]));
   },
 
   set() {
@@ -199,7 +335,8 @@ const commands = {
     for (const [k, v] of Object.entries(patch)) if (v === null) delete it[k]; else it[k] = v;
     if (!L.TYPES.includes(it.type)) die(`unknown type "${it.type}"`);
     L.write(n, b);
-    out(JSON.stringify(it));
+    const w = warnings(b.items, new Set([it.id]));
+    out(JSON.stringify(brief(it)) + (w.length ? '\nwarn: ' + w.join('; ') : ''));
   },
 
   rm() {
@@ -316,8 +453,7 @@ const commands = {
   },
 
   install() { // the three read the same SKILL.md format, each from its own folder
-    const home = os.homedir(), skill = fs.readFileSync(path.join(__dirname, 'skills', 'slate', 'SKILL.md'), 'utf8').replaceAll('{{SLATE}}', __dirname);
-    const agents = [['Claude Code', path.join(home, '.claude')], ['Codex', process.env.CODEX_HOME || path.join(home, '.codex')], ['GitHub Copilot', path.join(home, '.copilot')]];
+    const skill = skillText(), agents = AGENTS();
     const found = agents.filter(([, d]) => fs.existsSync(d));
     if (!found.length) die(`no agent found: looked for ${agents.map(([, d]) => d).join(', ')}. Run the agent once, then install again`);
     for (const [, d] of found) {
@@ -350,7 +486,7 @@ const commands = {
       const f = path.join(d, 'slate');
       try { if (fs.lstatSync(f).isSymbolicLink() && fs.realpathSync(f) === fs.realpathSync(cli)) { fs.rmSync(f); done.push(f); } } catch {}
     }
-    for (const d of [path.join(home, '.claude'), process.env.CODEX_HOME || path.join(home, '.codex'), path.join(home, '.copilot')]) {
+    for (const [, d] of AGENTS()) {
       const dir = path.join(d, 'skills', 'slate'); // only a skill that points at this copy (install writes the path into it)
       try { if (fs.readFileSync(path.join(dir, 'SKILL.md'), 'utf8').includes(__dirname)) { fs.rmSync(dir, { recursive: true }); done.push(dir); } } catch {}
     }
@@ -371,5 +507,5 @@ const commands = {
   },
 };
 
-if (!commands[cmd]) { out(HELP); process.exit(cmd && cmd !== 'help' ? 1 : 0); }
+if (!commands[cmd]) { out(HELP); if (!cmd || cmd === 'help') checkSkills(); process.exit(cmd && cmd !== 'help' ? 1 : 0); }
 commands[cmd]();
