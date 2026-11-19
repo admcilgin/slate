@@ -394,7 +394,7 @@ const total = stamps.at(-1) - stamps[0] + .5;
 const ff = ['-y', '-v', 'error', '-f', 'concat', '-safe', '0', '-i', path.join(TMP, 'frames.txt')];
 if (MUSIC) ff.push('-stream_loop', '-1', '-i', MUSIC);
 ff.push('-vf', 'fps=30,format=yuv420p', '-c:v', 'libx264', '-preset', 'slow', '-crf', '22', '-movflags', '+faststart');
-if (MUSIC) ff.push('-af', `volume=0.55,afade=t=in:d=1.5,afade=t=out:st=${(total - 3).toFixed(2)}:d=3`, '-c:a', 'aac', '-b:a', '160k', '-t', total.toFixed(2), '-shortest');
+if (MUSIC) ff.push('-af', `volume=0.25,afade=t=in:d=1.5,afade=t=out:st=${(total - 3).toFixed(2)}:d=3`, '-c:a', 'aac', '-b:a', '160k', '-t', total.toFixed(2), '-shortest');
 execFileSync('ffmpeg', [...ff, OUT], { stdio: 'inherit' });
 execFileSync('ffmpeg', ['-y', '-v', 'error', '-ss', '86', '-i', OUT, '-frames:v', '1', '-vf', 'scale=1280:-1', '-q:v', '3', POSTER]);
 console.log(OUT, `${(fs.statSync(OUT).size / 1e6).toFixed(1)} MB`);
