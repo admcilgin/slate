@@ -6,9 +6,9 @@ Yapay zekâ ajanlarının okuyup yazabildiği, bilgisayarınızda çalışan bir
 
 ![Slate demo panosu: metinler, yapışkan notlar, uyarı kutuları, çerçeve içinde bir akış diyagramı, çizgiler, işaretler ve açıklamalı bir ekran görüntüsü](docs/board.jpg)
 
-[![İki dakikalık tanıtım: ajan seçilen listeyi kanbana çeviriyor, bir kartı Done'a kadar götürüyor ve elle çizilmiş bir eskizden form yapıyor](docs/demo-poster.jpg)](docs/slate-demo.mp4)
+[![İki buçuk dakikalık tanıtım: elle çizim, demo panosundaki tüm öğeler, Mermaid, ardından bir akışı panoya çizen, seçilen listeyi kanbana çeviren, bir kartı Done'a kadar götüren, eskizden form yapan ve panoya bırakılan nota göre davranan bir ajan](docs/demo-poster.jpg)](docs/slate-demo.mp4)
 
-[▶ İki dakikalık tanıtım videosunu izle](docs/slate-demo.mp4) (sessiz, İngilizce yazılı).
+[▶ İki buçuk dakikalık tanıtım videosunu izle](docs/slate-demo.mp4) (arka planda müzik, seslendirme yok, İngilizce yazılı).
 
 Slate kendi bilgisayarınızda çalışır, her panoyu düz bir JSON dosyası olarak saklar ve hiçbir bağımlılığı yoktur. Kendiniz çizebilir ya da bir kod ajanına klasörü gösterip bir plan, akış veya yol haritası çizmesini isteyebilirsiniz. Ajanın yazdığı her şey açık panoda hemen görünür.
 
@@ -112,9 +112,13 @@ Bilgisayarınızın başka bir yerinde çalışan ajanlar komut satırı aracın
 
 ```sh
 slate status                      # Slate nerede, panolar, sunucu açıksa ya da web kopyası açtıysa adresi
+slate map demo                    # yerleşim az token'la: öğe başına bir satır, çerçeveye göre iç içe, boş alanlar
 slate show demo                   # tüm öğeler, satır başına bir tane
 slate new "Lansman planı"         # pano oluştur
 slate add demo '{"type":"note","text":"Yayınla"}'
+slate add demo '[…]' --at=below   # 0,0'dan başlayan bir grup öğe, panonun altındaki boş alana
+slate mermaid demo akis.mmd       # Mermaid akış şeması, şekiller ve oklar olarak
+slate copy demo <id> --to=diger   # öğeleri çoğalt, aynı panoda ya da başka bir panoya
 slate set demo <id> '{"color":"#34c759"}'
 slate rm demo <id>
 slate start                       # sunucuyu arka planda başlat; stop durdurur
@@ -170,11 +174,12 @@ Kurulum bunu sizin için yapar. Sonradan kurduğunuz bir ajan için `slate insta
 
 ## Kod
 
-Yaklaşık 1.900 satır, derleme adımı yok.
+Yaklaşık 2.400 satır, derleme adımı yok.
 
 - `cli.js` panoları komut satırından okur ve düzenler; `lib.js` sunucuyla ortak kısımları tutar.
 - `server.js` uygulamayı sunar, pano dosyalarını okuyup yazar ve canlı yenileme olaylarını gönderir.
 - `public/folder.js` statik barındırmada sunucunun yerine geçer, panoları kullanıcının seçtiği klasörde tutar.
+- `public/mermaid.js` Mermaid akış şemasını şekillere ve oklara çevirir; + menüsü, yapıştırma ve `slate mermaid` bunu kullanır.
 - `public/app.js` tuvalin kendisidir. Her öğe türünün `R` içinde bir çizicisi, `DEF` içinde varsayılanları vardır.
 - `demo.json` ilk açılışta kopyalanan tanıtım panosudur.
 

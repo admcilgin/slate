@@ -6,9 +6,9 @@ A local whiteboard that AI agents can read and write.
 
 ![The Slate demo board: text, sticky notes, callouts, a flowchart in a frame, lines, pins and an annotated screenshot](docs/board.jpg)
 
-[![Two-minute demo: an agent turns a selected list into a kanban, works a card through to Done, and builds a form from a hand-drawn sketch](docs/demo-poster.jpg)](docs/slate-demo.mp4)
+[![Two-and-a-half-minute demo: drawing by hand, every item on the demo board, Mermaid, then an agent that lays out a flow, turns a selected list into a kanban, works a card through to Done, builds a form from a sketch and acts on a note left on the board](docs/demo-poster.jpg)](docs/slate-demo.mp4)
 
-[▶ Watch the two-minute demo video](docs/slate-demo.mp4) (silent).
+[▶ Watch the two-and-a-half-minute demo video](docs/slate-demo.mp4) (background music, no voice-over).
 
 Slate runs on your machine, stores every board as a plain JSON file, and has no dependencies. Draw on it yourself, or point a coding agent at the folder and ask it to lay out a plan, a flow or a roadmap. Whatever the agent writes appears on the open board straight away.
 
@@ -112,9 +112,13 @@ Agents working elsewhere on your machine use the CLI. It edits board files direc
 
 ```sh
 slate status                      # where Slate lives, boards, URL if the server is up or the web copy has them open
+slate map demo                    # the layout in few tokens: one line per item, nested by frame, plus free space
 slate show demo                   # every item, one per line
 slate new "Launch plan"           # create a board
 slate add demo '{"type":"note","text":"Ship it"}'
+slate add demo '[…]' --at=below   # a batch at 0,0, placed in free space below the board
+slate mermaid demo flow.mmd       # a Mermaid flowchart as shapes and arrows
+slate copy demo <id> --to=other   # duplicate items, here or onto another board
 slate set demo <id> '{"color":"#34c759"}'
 slate rm demo <id>
 slate start                       # start the server in the background; stop ends it
@@ -170,11 +174,12 @@ The installer does this for you. An agent you install later is picked up by runn
 
 ## Code
 
-About 1,900 lines, no build step.
+About 2,400 lines, no build step.
 
 - `cli.js` reads and edits boards from the command line; `lib.js` holds what it shares with the server.
 - `server.js` serves the app, reads and writes board files, and pushes live-reload events.
 - `public/folder.js` stands in for the server on a static host, keeping boards in a folder the user picks.
+- `public/mermaid.js` turns a Mermaid flowchart into shapes and arrows, for the + menu, paste and `slate mermaid`.
 - `public/app.js` is the canvas. Each item type has one renderer in `R` and its defaults in `DEF`.
 - `demo.json` is the showcase board copied on first run.
 
