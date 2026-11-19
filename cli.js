@@ -17,6 +17,7 @@ const HELP = `Usage: slate <command>. Boards live in ${L.BOARDS}
   show <board> [--full]         print the board, one item per line (--full includes freehand points)
   new <board>                   create an empty board
   add <board> [json|-]          add one item or an array of items; prints the new ids
+  mermaid <board> [file|text|-] draw a Mermaid flowchart as shapes and arrows, below what is there (--x=, --y= to place it)
   set <board> <id> [json|-]     merge fields into an item (a null value removes the field)
   rm <board> <id> [id…]         delete items
   rm-board <board>              delete a board
@@ -168,6 +169,23 @@ const commands = {
       }
       b.items.push(it);
     }
+    L.write(n, b);
+    out({ board: n, added: items.map(i => i.id), url: urlFor(n) });
+  },
+
+  mermaid() {
+    const n = name(pos[0]), b = L.read(n), a = pos[1];
+    const src = !a || a === '-' ? fs.readFileSync(0, 'utf8') : fs.existsSync(a) ? fs.readFileSync(a, 'utf8') : a;
+    const ids = new Set(b.items.map(i => i.id));
+    let items, p = 'mm-';
+    for (let k = 2; ; k++) { // a second diagram on the same board gets mm2-, mm3-…
+      try { items = require('./public/mermaid')(src, p); } catch (e) { die(e.message); }
+      if (!items.some(i => ids.has(i.id))) break;
+      p = `mm${k}-`;
+    }
+    const x0 = Number(opt('x') ?? 80), y0 = Number(opt('y') ?? (b.items.length ? Math.max(...b.items.map(i => (i.y || 0) + (i.h || 120))) + 80 : 80));
+    for (const i of items) { i.x += x0; i.y += y0; }
+    b.items.push(...items);
     L.write(n, b);
     out({ board: n, added: items.map(i => i.id), url: urlFor(n) });
   },

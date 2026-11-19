@@ -48,6 +48,7 @@ The first board, `demo`, shows every kind of item. The **?** button in the top-r
 - Text and sticky notes
 - Callouts: boxed remarks for info, warnings and decisions
 - Code and JSON blocks with syntax colouring, collapse and copy; pasted JSON is formatted automatically
+- Paste a Mermaid flowchart and it becomes editable shapes and arrows
 - Size, bold, italic, alignment and colour on text, notes, shapes and cards
 
 **Data and planning**

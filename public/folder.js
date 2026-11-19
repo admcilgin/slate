@@ -91,7 +91,7 @@
   document.getElementById('status').textContent = 'Shared copy: changes are not saved';
 })();`;
     return page
-      .replace('<script src="folder.js"></script>\n', '')
+      .replace(/<script src="(mermaid|folder)\.js"><\/script>\n/g, '')
       .replace('<link rel="stylesheet" href="style.css">', () => `<style>${css}\n#shareBtn, #boardMenu { display: none !important; }</style>`)
       .replace('<script src="app.js"></script>', () => `<script>${shim}</script>\n<script>${js.replace(/<\/script/gi, '<\\/script')}</script>`);
   }

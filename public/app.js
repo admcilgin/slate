@@ -952,6 +952,10 @@ function addURL(url, p) {
   add({ type: /youtube\.com|youtu\.be|vimeo\.com|figma\.com|loom\.com/.test(url) ? 'embed' : 'link', url, ...p });
 }
 
+function mermaid(txt) {
+  if (!window.mermaidItems || !/^(```\s*mermaid\s*)?(graph|flowchart)\b/i.test(txt)) return false;
+  try { pasteItems(mermaidItems(txt)); return true; } catch { return false; } // not a flowchart after all: paste it as text
+}
 addEventListener('paste', e => {
   if (typing(e)) return;
   const files = [...e.clipboardData.files], txt = e.clipboardData.getData('text').trim();
@@ -959,6 +963,7 @@ addEventListener('paste', e => {
   try { clip = JSON.parse(txt); } catch {}
   if (files.length) addFiles(files, center());
   else if (clip?.slate && Array.isArray(clip.items)) pasteItems(clip.items);
+  else if (mermaid(txt)); // a Mermaid flowchart became shapes and arrows
   else if (clip && typeof clip === 'object') add({ ...centered('code'), text: clip }); // pasted JSON becomes a formatted block
   else if (/^https?:\/\/\S+$/i.test(txt)) addURL(txt, center());
   else if (txt) add({ type: 'text', text: txt, ...center() });

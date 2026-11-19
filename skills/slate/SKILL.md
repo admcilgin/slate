@@ -18,6 +18,7 @@ Run every command as `slate <command>`. If the shell cannot find `slate`, use `n
 | `show <board>` | Every item on the board, one JSON object per line |
 | `new <board>` | Create an empty board |
 | `add <board> '<json>'` | Add one item or an array of items. Prints the new ids |
+| `mermaid <board> '<flowchart>'` | Draw a Mermaid flowchart as shapes and arrows (or a file, or `-` for stdin). The quickest way to a flow or architecture diagram |
 | `set <board> <id> '<json>'` | Merge fields into an item. A `null` value removes that field |
 | `rm <board> <id> [id…]` | Delete items |
 | `rm-board <board>` | Delete a whole board (only when the user asks) |

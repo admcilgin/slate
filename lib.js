@@ -55,7 +55,7 @@ function exportHTML(n) {
   document.getElementById('status').textContent = 'Shared copy: changes are not saved';
 })();`;
   return pub('index.html')
-    .replace('<script src="folder.js"></script>\n', '')
+    .replace(/<script src="(mermaid|folder)\.js"><\/script>\n/g, '')
     .replace('<link rel="stylesheet" href="style.css">', () => `<style>${pub('style.css').replace(/url\("(fonts\/[\w-]+\.woff2)"\)/g, (_, f) => `url("data:font/woff2;base64,${fs.readFileSync(path.join(__dirname, 'public', f)).toString('base64')}")`)}\n#shareBtn, #boardMenu { display: none !important; }</style>`)
     .replace('<script src="app.js"></script>', () => `<script>${shim}</script>\n<script>${pub('app.js').replace(/<\/script/gi, '<\\/script')}</script>`);
 }

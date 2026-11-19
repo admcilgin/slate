@@ -48,6 +48,7 @@ Güncellemek için aynı satırı tekrar çalıştırın; panolarınız yerinde 
 - Metin ve yapışkan notlar
 - Uyarı kutuları: bilgi, uyarı ve karar notları için
 - Sözdizimi renklendirmeli, daraltılabilen ve kopyalanabilen kod ve JSON blokları; yapıştırılan JSON kendiliğinden biçimlenir
+- Yapıştırılan Mermaid akış şeması düzenlenebilir şekillere ve oklara dönüşür
 - Metin, not, şekil ve kartlarda boyut, kalın, italik, hizalama ve renk
 
 **Veri ve planlama**
