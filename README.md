@@ -112,9 +112,13 @@ Agents working elsewhere on your machine use the CLI. It edits board files direc
 
 ```sh
 slate status                      # where Slate lives, boards, URL if the server is up or the web copy has them open
+slate map demo                    # the layout in few tokens: one line per item, nested by frame, plus free space
 slate show demo                   # every item, one per line
 slate new "Launch plan"           # create a board
 slate add demo '{"type":"note","text":"Ship it"}'
+slate add demo '[…]' --at=below   # a batch at 0,0, placed in free space below the board
+slate mermaid demo flow.mmd       # a Mermaid flowchart as shapes and arrows
+slate copy demo <id> --to=other   # duplicate items, here or onto another board
 slate set demo <id> '{"color":"#34c759"}'
 slate rm demo <id>
 slate start                       # start the server in the background; stop ends it
@@ -170,11 +174,12 @@ The installer does this for you. An agent you install later is picked up by runn
 
 ## Code
 
-About 1,900 lines, no build step.
+About 2,400 lines, no build step.
 
 - `cli.js` reads and edits boards from the command line; `lib.js` holds what it shares with the server.
 - `server.js` serves the app, reads and writes board files, and pushes live-reload events.
 - `public/folder.js` stands in for the server on a static host, keeping boards in a folder the user picks.
+- `public/mermaid.js` turns a Mermaid flowchart into shapes and arrows, for the + menu, paste and `slate mermaid`.
 - `public/app.js` is the canvas. Each item type has one renderer in `R` and its defaults in `DEF`.
 - `demo.json` is the showcase board copied on first run.
 
