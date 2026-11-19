@@ -1010,11 +1010,64 @@ $('#ins').onclick = async e => {
   if (!kind) return;
   $('#ins').hidePopover();
   if (kind === 'media') return $('#file').click();
+  if (kind === 'mermaid') return openMermaid();
   if (kind === 'frame') { add(centered(kind)); return reorder(false); } // frames sit behind what they hold
   if (kind !== 'link') return add(centered(kind));
   const u = await ask('Paste a link — a page, YouTube, Figma, an image or a video');
   if (u) { const c = centered('link'); addURL(isHttp(u) ? u : 'https://' + u, { x: c.x, y: c.y }); }
 };
+// Mermaid to Slate: write a flowchart, see it drawn, insert it as shapes and arrows.
+const MM_EXAMPLE = 'flowchart TD\n  start[Open the app] --> auth{Signed in?}\n  auth -- yes --> home([Home])\n  auth -- no --> login[Sign in]\n  login -.-> auth';
+let mmItems = null;
+function openMermaid() {
+  const d = $('#mermaid'), inp = $('#mmInput');
+  inp.value ||= MM_EXAMPLE;
+  d.returnValue = '';
+  d.onclose = () => { if (d.returnValue === 'ok' && mmItems) pasteItems(mmItems); };
+  d.showModal();
+  mmPreview();
+  inp.focus();
+}
+function mmPreview() {
+  const svg = $('#mmPreview'), ok = $('#mermaid button[value=ok]'), NS = 'http://www.w3.org/2000/svg';
+  const el = (t, a, txt) => { const e = document.createElementNS(NS, t); for (const k in a) e.setAttribute(k, a[k]); if (txt != null) e.textContent = txt; return e; };
+  try { mmItems = mermaidItems($('#mmInput').value); $('#mmError').textContent = ''; }
+  catch (e) { mmItems = null; $('#mmError').textContent = e.message; }
+  ok.disabled = !mmItems;
+  svg.replaceChildren();
+  if (!mmItems) return;
+  const S = mmItems.filter(i => i.type === 'shape'), pad = 24;
+  const x0 = Math.min(...S.map(i => i.x)) - pad, y0 = Math.min(...S.map(i => i.y)) - pad;
+  svg.setAttribute('viewBox', `${x0} ${y0} ${Math.max(...S.map(i => i.x + i.w)) + pad - x0} ${Math.max(...S.map(i => i.y + i.h)) + pad - y0}`);
+  const defs = el('defs', {}), mk = el('marker', { id: 'mmArrow', viewBox: '0 0 10 10', refX: 9, refY: 5, markerWidth: 7, markerHeight: 7, orient: 'auto-start-reverse' });
+  mk.append(el('path', { d: 'M0 1L9 5L0 9' })); defs.append(mk); svg.append(defs);
+  for (const i of S) {
+    const { x, y, w, h: ht } = i, cx = x + w / 2, cy = y + ht / 2, st = i.color ? { style: `stroke:${i.color}` } : {};
+    svg.append(i.shape === 'ellipse' ? el('ellipse', { cx, cy, rx: w / 2, ry: ht / 2, ...st })
+      : i.shape === 'diamond' ? el('path', { d: `M${cx} ${y}L${x + w} ${cy}L${cx} ${y + ht}L${x} ${cy}Z`, ...st })
+      : el('rect', { x, y, width: w, height: ht, rx: 10, ...st }));
+    const rows = i.text.split('\n');
+    rows.forEach((t, k) => svg.append(el('text', { x: cx, y: cy + (k - (rows.length - 1) / 2) * 17 }, t)));
+  }
+  for (const l of mmItems.filter(i => i.type === 'line')) {
+    const box = id => S.find(s => s.id === id), A = box(l.from), B = box(l.to), m = s => [s.x + s.w / 2, s.y + s.h / 2];
+    // Ends as the board places them (see route): an elbow leaves and enters through the facing sides, others are trimmed at the boxes.
+    let P = l.points.map(p => [p[0] + l.x, p[1] + l.y]);
+    if (l.elbow) {
+      const ca = m(A), cb = m(B), hz = Math.max(B.x - A.x - A.w, A.x - B.x - B.w) >= Math.max(B.y - A.y - A.h, A.y - B.y - B.h);
+      P = path({ elbow: hz ? 'h' : 'v', points: hz ? [[ca[0] < cb[0] ? A.x + A.w : A.x, ca[1]], [ca[0] < cb[0] ? B.x : B.x + B.w, cb[1]]]
+        : [[ca[0], ca[1] < cb[1] ? A.y + A.h : A.y], [cb[0], ca[1] < cb[1] ? B.y : B.y + B.h]] });
+    } else {
+      const trim = (s, a, b) => { const dx = b[0] - a[0], dy = b[1] - a[1], k = Math.min(s.w / 2 / Math.abs(dx || 1e-9), s.h / 2 / Math.abs(dy || 1e-9), 1); return [a[0] + dx * k, a[1] + dy * k]; };
+      P[0] = trim(A, m(A), P[1]); P[P.length - 1] = trim(B, m(B), P[P.length - 2]);
+    }
+    svg.append(el('path', { d: 'M' + P.map(p => p.join(' ')).join('L'), ...(l.arrow ? { 'marker-end': 'url(#mmArrow)' } : {}), ...(l.arrow === 'both' ? { 'marker-start': 'url(#mmArrow)' } : {}),
+      style: `${l.dash ? 'stroke-dasharray:6 5;' : ''}${l.width ? `stroke-width:${l.width / 1.5}` : ''}` }));
+    if (l.label) { const q = P[Math.floor(P.length / 2)], p = P[Math.floor(P.length / 2) - 1] || q; svg.append(el('text', { x: (p[0] + q[0]) / 2, y: (p[1] + q[1]) / 2 - 9 }, l.label)); }
+  }
+}
+$('#mmInput').oninput = mmPreview;
+$('#mmInput').onkeydown = e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && mmItems) { e.preventDefault(); $('#mermaid').close('ok'); } };
 $('#file').onchange = e => { addFiles([...e.target.files], center()); e.target.value = ''; };
 $('#zoom').onclick = () => { const c = center(); view.x = innerWidth / 2 - c.x; view.y = innerHeight / 2 - c.y; view.z = 1; applyView(); };
 $('#tasksBtn').onclick = () => { panel.hidden = !panel.hidden; renderPanel(); };

@@ -209,6 +209,13 @@ dialog { padding: 18px; width: min(420px, calc(100vw - 32px)); }
 dialog::backdrop { background: rgba(0,0,0,.2); }
 dialog label { display: block; font-weight: 600; margin-bottom: 10px; }
 dialog input { width: 100%; font: inherit; padding: 9px 11px; border-radius: 9px; border: .5px solid var(--line); background: var(--bg); color: var(--ink); }
+#mermaid { width: min(900px, calc(100vw - 32px)); }
+.mm { display: grid; grid-template-columns: 1fr 1.3fr; gap: 12px; height: min(420px, 60vh); }
+.mm textarea { resize: none; font: 12px/1.6 ui-monospace, "SF Mono", Menlo, monospace; padding: 10px 12px; border-radius: 9px; border: .5px solid var(--line); background: var(--bg); color: var(--ink); outline: 0; }
+#mmPreview { width: 100%; height: 100%; border-radius: 9px; background: var(--bg); fill: none; stroke: var(--ink); stroke-width: 1.5; }
+#mmPreview text { fill: var(--ink); stroke: none; font-size: 13px; text-anchor: middle; dominant-baseline: central; }
+#mmError { min-height: 1.4em; margin: 8px 0 0; color: #ff3b30; }
+@media (max-width: 640px) { .mm { grid-template-columns: 1fr; height: 70vh; } }
 #find { margin-top: 90px; padding: 8px; width: min(540px, calc(100vw - 32px)); }
 #find input { border: 0; background: none; font-size: 16px; padding: 8px 10px; outline: 0; }
 #findList { max-height: 50vh; overflow: auto; }
@@ -229,6 +236,7 @@ code.install { display: block; margin-top: 6px; padding: 7px 9px; border-radius:
 dialog menu { display: flex; flex-direction: row-reverse; gap: 8px; margin: 14px 0 0; padding: 0; }
 dialog menu button { padding: 7px 16px; border-radius: 9px; background: color-mix(in srgb, var(--ink) 8%, transparent); }
 dialog menu button[value=ok] { background: var(--accent); color: #fff; }
+dialog menu button:disabled { opacity: .4; }
 
 /* ?shot: the print layout on screen, for the headless screenshot behind `cli.js shot` */
 .shot :is(#bar, #corner, #tools, #panel, #boardBtn, #status, #marq, .guide, .selbox, .rz, .ep, .noprint) { display: none !important; }

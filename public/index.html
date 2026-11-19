@@ -69,6 +69,8 @@
   <button data-ins="callout">Callout</button>
   <button data-ins="kanban">Kanban</button>
   <button data-ins="frame">Frame</button>
+  <i></i>
+  <button data-ins="mermaid">Mermaid flowchart</button>
 </div>
 
 <input id="file" type="file" multiple accept="image/*,video/*" hidden>
@@ -92,6 +94,18 @@
   <p id="helpFolder" hidden></p>
   <p class="sub"><code>slate status</code> shows where your boards are, <code>slate</code> lists every command. <kbd>⌘K</kbd> searches all boards; hover a tool for its key.</p>
   <form method="dialog"><menu><button value="ok">Got it</button></menu></form>
+</dialog>
+
+<dialog id="mermaid" class="glass">
+  <form method="dialog">
+    <label for="mmInput">Mermaid to Slate</label>
+    <div class="mm">
+      <textarea id="mmInput" spellcheck="false" aria-label="Mermaid flowchart"></textarea>
+      <svg id="mmPreview" role="img" aria-label="Preview"></svg>
+    </div>
+    <p id="mmError"></p>
+    <menu><button value="ok">Insert</button><button value="">Cancel</button></menu>
+  </form>
 </dialog>
 
 <dialog id="find" class="glass">
