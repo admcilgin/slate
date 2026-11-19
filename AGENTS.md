@@ -118,3 +118,4 @@ Nested groups, rich text, multi-series charts, rotation, real-time multi-user ed
 - `public/folder.js` — on any host but localhost, answers the app's `/api` calls from a folder the user picks (File System Access API, polled for live reload), so `public/` works as a static site with no server.
 - `public/app.js` — canvas, tools, one renderer per item type in `R`, defaults in `DEF`. Adding a type means one entry in each, plus a row in the table above.
 - `public/style.css`, `public/index.html` — look and chrome.
+- `docs/demo-video.mjs` — re-records `docs/slate-demo.mp4` and its poster from `demo.json` with the real app and CLI (needs Chrome and ffmpeg; `docs/demo-music.mp3` is the background track). Update its scenes when a feature worth showing lands.

@@ -6,9 +6,9 @@ Yapay zekâ ajanlarının okuyup yazabildiği, bilgisayarınızda çalışan bir
 
 ![Slate demo panosu: metinler, yapışkan notlar, uyarı kutuları, çerçeve içinde bir akış diyagramı, çizgiler, işaretler ve açıklamalı bir ekran görüntüsü](docs/board.jpg)
 
-[![İki dakikalık tanıtım: ajan seçilen listeyi kanbana çeviriyor, bir kartı Done'a kadar götürüyor ve elle çizilmiş bir eskizden form yapıyor](docs/demo-poster.jpg)](docs/slate-demo.mp4)
+[![İki buçuk dakikalık tanıtım: elle çizim, demo panosundaki tüm öğeler, Mermaid, ardından bir akışı panoya çizen, seçilen listeyi kanbana çeviren, bir kartı Done'a kadar götüren, eskizden form yapan ve panoya bırakılan nota göre davranan bir ajan](docs/demo-poster.jpg)](docs/slate-demo.mp4)
 
-[▶ İki dakikalık tanıtım videosunu izle](docs/slate-demo.mp4) (sessiz, İngilizce yazılı).
+[▶ İki buçuk dakikalık tanıtım videosunu izle](docs/slate-demo.mp4) (arka planda müzik, seslendirme yok, İngilizce yazılı).
 
 Slate kendi bilgisayarınızda çalışır, her panoyu düz bir JSON dosyası olarak saklar ve hiçbir bağımlılığı yoktur. Kendiniz çizebilir ya da bir kod ajanına klasörü gösterip bir plan, akış veya yol haritası çizmesini isteyebilirsiniz. Ajanın yazdığı her şey açık panoda hemen görünür.
 

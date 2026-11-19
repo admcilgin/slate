@@ -6,9 +6,9 @@ A local whiteboard that AI agents can read and write.
 
 ![The Slate demo board: text, sticky notes, callouts, a flowchart in a frame, lines, pins and an annotated screenshot](docs/board.jpg)
 
-[![Two-minute demo: an agent turns a selected list into a kanban, works a card through to Done, and builds a form from a hand-drawn sketch](docs/demo-poster.jpg)](docs/slate-demo.mp4)
+[![Two-and-a-half-minute demo: drawing by hand, every item on the demo board, Mermaid, then an agent that lays out a flow, turns a selected list into a kanban, works a card through to Done, builds a form from a sketch and acts on a note left on the board](docs/demo-poster.jpg)](docs/slate-demo.mp4)
 
-[▶ Watch the two-minute demo video](docs/slate-demo.mp4) (silent).
+[▶ Watch the two-and-a-half-minute demo video](docs/slate-demo.mp4) (background music, no voice-over).
 
 Slate runs on your machine, stores every board as a plain JSON file, and has no dependencies. Draw on it yourself, or point a coding agent at the folder and ask it to lay out a plan, a flow or a roadmap. Whatever the agent writes appears on the open board straight away.
 
