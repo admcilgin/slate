@@ -48,7 +48,7 @@ JSON comes from the argument, or from stdin when it is "-" or missing.
 Item types and fields are documented in ${path.join(__dirname, 'AGENTS.md')}`;
 
 const die = m => { console.error('slate: ' + m); process.exit(1); };
-const out = v => console.log(typeof v === 'string' ? v : JSON.stringify(v)); // one line: agents read it, and indentation is tokens
+const out = v => console.log(typeof v === 'string' ? v : JSON.stringify(v, null, process.stdout.isTTY ? 2 : 0)); // indented in a terminal; one line when piped to an agent, where indentation is tokens
 const uid = () => Math.random().toString(36).slice(2, 9);
 const opt = k => [...flags].find(f => f.startsWith(`--${k}=`))?.slice(k.length + 3);
 const brief = i => i.type === 'draw' ? { ...i, points: `<${i.points?.length || 0} points>` } : i; // freehand strokes are long and say nothing as numbers; use shot
