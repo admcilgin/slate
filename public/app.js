@@ -509,10 +509,16 @@ function focusItem(i) {
 
 // ---------- history + persistence ----------
 
-let hist = [], fut = [], last = '', saveT, dirtyT;
+let hist = [], fut = [], last = '', saved = '', saveT, dirtyT;
+let boardIO = Promise.resolve();
+function queueBoardIO(fn) {
+  const result = boardIO.then(fn);
+  boardIO = result.catch(() => {});
+  return result;
+}
 
 function commit() {
-  clearTimeout(dirtyT);
+  clearTimeout(dirtyT); dirtyT = null;
   const s = JSON.stringify(board);
   if (s === last) return;
   hist.push(last); if (hist.length > 200) hist.shift();
@@ -521,12 +527,22 @@ function commit() {
 }
 const dirty = () => { clearTimeout(dirtyT); dirtyT = setTimeout(commit, 500); };
 
-// ponytail: whole-board last-write-wins; an agent write landing inside this 250ms window is overwritten. Per-item merge if that ever bites.
 function save() { clearTimeout(saveT); saveT = setTimeout(flush, 250); }
 function flush() {
-  if (!saveT || !name) return;
+  const n = name;
   clearTimeout(saveT); saveT = null;
-  return fetch(api(name), { method: 'PUT', body: last }).then(res => { $('#status').hidden = res.ok; }, () => { $('#status').hidden = false; });
+  return queueBoardIO(async () => {
+    if (!n || n !== name || last === saved) return true;
+    await readBoard(n, true, false);
+    if (n !== name || last === saved) return true;
+    const snapshot = last;
+    const res = await fetch(api(n), { method: 'PUT', body: snapshot }).catch(() => null);
+    if (n === name) {
+      if (res?.ok) saved = snapshot;
+      $('#status').hidden = !!res?.ok;
+    }
+    return !!res?.ok;
+  });
 }
 
 function travel(from, to) {
@@ -537,21 +553,50 @@ function travel(from, to) {
 }
 const undo = () => travel(hist, fut), redo = () => travel(fut, hist);
 
-async function load(remote) {
-  if (drag) return setTimeout(() => load(remote), 300); // don't swap the board under an active gesture
-  let b;
+function mergeBoard(base, local, remote) {
+  const old = new Map(base.items.map(i => [i.id, JSON.stringify(i)]));
+  const mine = new Map(local.items.map(i => [i.id, i]));
+  const theirs = new Map(remote.items.map(i => [i.id, i]));
+  const reordered = JSON.stringify(base.items.filter(i => mine.has(i.id)).map(i => i.id))
+    !== JSON.stringify(local.items.filter(i => old.has(i.id)).map(i => i.id));
+  const order = new Set(reordered ? [...mine.keys(), ...theirs.keys()] : [...theirs.keys(), ...mine.keys()]);
+  const items = [];
+  for (const id of order) {
+    const item = JSON.stringify(mine.get(id)) === old.get(id) ? theirs.get(id) : mine.get(id);
+    if (item) items.push(item);
+  }
+  return { ...remote, items };
+}
+
+function load(remote) {
   const n = name;
+  if (drag) return setTimeout(() => { if (n === name) load(remote); }, 300);
+  return queueBoardIO(() => readBoard(n, remote));
+}
+
+async function readBoard(n, remote, rescheduleSave = true) {
+  if (n !== name) return;
+  let b;
   try { b = await (await fetch(api(n))).json(); } catch { return; }
   if (n !== name || !b || !Array.isArray(b.items)) return; // switched boards while fetching
+  if (drag) return setTimeout(() => { if (n === name) load(remote); }, 300);
   const seen = new Set();
   b.items = b.items.filter(i => i && i.type).map(norm);
   b.items.forEach(i => { if (seen.has(i.id)) i.id = uid(); seen.add(i.id); });
   const s = JSON.stringify(b);
-  if (s === last) return;
-  if (remote) hist.push(last); // agent edits are undoable too
-  board = b; last = s; editing = null;
+  if (remote && s === saved) return;
+  const local = dirtyT ? JSON.stringify(board) : last;
+  if (remote && local) {
+    hist.push(local); if (hist.length > 200) hist.shift(); // agent edits are undoable too
+    fut = [];
+  }
+  const merged = remote && saved && local !== saved;
+  board = merged ? mergeBoard(JSON.parse(saved), JSON.parse(local), b) : b;
+  saved = s; last = merged ? JSON.stringify(board) : s; editing = null;
+  clearTimeout(dirtyT); dirtyT = null;
   sel = new Set([...sel].filter(byId));
   render();
+  if (rescheduleSave && last !== saved) save();
 }
 
 // ---------- editing ----------
@@ -1174,7 +1219,7 @@ async function openBoard() {
     history.replaceState(null, '', '#' + encodeURIComponent(n));
   }
   name = n; localStorage.board = n; document.title = n + ' · Slate';
-  board = { items: [] }; hist = []; fut = []; last = ''; sel.clear(); editing = null;
+  board = { items: [] }; hist = []; fut = []; last = saved = ''; sel.clear(); editing = null;
   view = { x: 0, y: 0, z: 1 };
   let seen;
   try { seen = JSON.parse(localStorage['view:' + n]); Object.assign(view, seen); } catch {}
@@ -1207,11 +1252,14 @@ function renderBoards(list) {
       const old = name, n = await askName('Rename board', old);
       if (!n) return;
       if (editing) stopEdit(); else commit();
-      await flush();
-      await fetch(api(n), { method: 'PUT', body: last });
+      if (!await flush() || name !== old) return;
+      const res = await fetch(api(n), { method: 'PUT', body: last }).catch(() => null);
+      if (!res?.ok) { $('#status').hidden = false; return; }
+      const removed = await fetch(api(old), { method: 'DELETE' }).catch(() => null);
+      if (!removed?.ok) { $('#status').hidden = false; return; }
       try { localStorage['view:' + n] = localStorage['view:' + old]; delete localStorage['view:' + old]; } catch {}
+      if (name === old) name = ''; // switching away must not save the deleted board again
       go(n);
-      await fetch(api(old), { method: 'DELETE' });
     }),
     item('Delete…', async () => {
       const old = name;

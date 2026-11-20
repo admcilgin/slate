@@ -84,10 +84,42 @@ function box(i) {
 }
 const inside = (a, f) => a.x >= f.x && a.y >= f.y && a.x + a.w <= f.x + f.w && a.y + a.h <= f.y + f.h;
 const hits = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+const isComponent = i => !['line', 'draw', 'pin', 'frame'].includes(i.type);
+
+// A frame scope includes items touching its interior, even when they straddle its edge.
+function inspectOverlaps(items, { frame, group } = {}) {
+  const entries = items.filter(i => isComponent(i) || i.type === 'frame')
+    .map(item => ({ item, rect: box(item) })).filter(({ rect }) => rect.w > 0 && rect.h > 0);
+  const region = frame && box(frame);
+  const scoped = region ? entries.filter(({ rect }) => hits(rect, region)) : entries;
+  const frames = scoped.filter(({ item }) => item.type === 'frame');
+  const overlaps = [], frameCrossings = [];
+  for (const [index, { item: a, rect: ar }] of scoped.entries()) {
+    for (let j = index + 1; j < scoped.length; j++) {
+      const { item: b, rect: br } = scoped[j];
+      if (group !== undefined && a.group !== group && b.group !== group) continue;
+      if (!hits(ar, br)) continue;
+      const x = Math.max(ar.x, br.x), y = Math.max(ar.y, br.y);
+      const intersection = { x, y, w: Math.min(ar.x + ar.w, br.x + br.w) - x, h: Math.min(ar.y + ar.h, br.y + br.h) - y };
+      if (isComponent(a) && isComponent(b)) {
+        overlaps.push({
+          items: [a.id, b.id], intersection,
+          frames: frames.filter(({ rect }) => inside(ar, rect) && inside(br, rect)).map(({ item }) => item.id),
+          ...(a.group && a.group === b.group ? { group: a.group } : {})
+        });
+      } else if (!inside(ar, br) && !inside(br, ar)) {
+        const [item, boundary] = a.type === 'frame' && b.type !== 'frame' ? [b, a] : [a, b];
+        frameCrossings.push({ item: item.id, frame: boundary.id, intersection });
+      }
+    }
+  }
+  return { overlaps, frameCrossings };
+}
+
 // What a blind writer should hear about `ids`: boxes that overlap another item, and items cut by a frame's edge.
 // Pins, lines, strokes and items of the same group are meant to sit on things, so they are left out.
 function clashes(items, ids) {
-  const solid = items.filter(i => !['line', 'draw', 'pin', 'frame'].includes(i.type)), frames = items.filter(i => i.type === 'frame'), out = [];
+  const solid = items.filter(isComponent), frames = items.filter(i => i.type === 'frame'), out = [];
   for (const i of items.filter(i => ids.has(i.id))) {
     const a = box(i);
     if (i.type !== 'frame' && solid.includes(i)) for (const o of solid) if (o !== i && !(i.group && i.group === o.group) && (!ids.has(o.id) || i.id < o.id) && hits(a, box(o))) out.push(`${i.id} overlaps ${o.id}`);
@@ -146,4 +178,4 @@ if (fs.existsSync(legacy) && !fs.existsSync(file('main'))) fs.renameSync(legacy,
 const demo = path.join(__dirname, 'demo.json');
 if (!list().length) fs.existsSync(demo) ? fs.copyFileSync(demo, file('demo')) : fs.writeFileSync(file('main'), EMPTY); // first run: showcase board
 
-module.exports = { PICK, isDir, dataIn, picked, DATA, ASSETS, BOARDS, RUN, WEB, MARK, CURSOR, MIME, NAME, EMPTY, SPEC, TYPES, COMMON, unknown, height, box, inside, hits, clashes, file, list, format, read, write, exportHTML };
+module.exports = { PICK, isDir, dataIn, picked, DATA, ASSETS, BOARDS, RUN, WEB, MARK, CURSOR, MIME, NAME, EMPTY, SPEC, TYPES, COMMON, unknown, height, box, inside, hits, clashes, inspectOverlaps, file, list, format, read, write, exportHTML };

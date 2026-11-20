@@ -17,6 +17,8 @@ const HELP = `Usage: slate <command>. Boards live in ${L.BOARDS}
   boards                        list boards with item counts
   map <board> [id]              the layout in few tokens: every item as id, type, x,y, w×h (rendered), text; nested by
                                 frame; arrows as a→b; where the free space is. Read this first; show for full fields
+  overlaps <board> [frame-id]   report overlapping components and frame crossings as JSON
+                                --group=<group> checks pairs involving a member, including pairs within the group
   show <board> [id…] [--full]   items as JSON, one per line; ids narrow it (a frame brings its contents)
   types                         every item type with its fields, default size and colours
   new <board>                   create an empty board
@@ -79,17 +81,20 @@ function place(b, batch) {
   const own = bounds(batch) || { x: 0, y: 0, r: 0, b: 0 }, all = bounds(b.items), f = at && !['below', 'right'].includes(at) && b.items.find(i => i.id === at);
   if (at && !['below', 'right'].includes(at) && f?.type !== 'frame') die(`--at takes below, right or the id of a frame; "${at}" is ${f ? 'a ' + f.type : 'not on the board'}`);
   let x = 80, y = 80;
+  const frame = f && L.box(f);
   if (f) {
-    const c = bounds(inFrame(b.items, f)), fits = c && c.r + 30 + own.r - own.x <= f.x + f.w - 40 && c.y + own.b - own.y <= f.y + f.h - 40;
-    [x, y] = !c ? [f.x + 40, f.y + 60] : fits ? [c.r + 30, c.y] : [f.x + 40, c.b + 30]; // beside what is there while it fits, else below (the frame grows)
+    const c = bounds(inFrame(b.items, f)), fits = c && c.r + 30 + own.r - own.x <= frame.x + frame.w - 40 && c.y + own.b - own.y <= frame.y + frame.h - 40;
+    [x, y] = !c ? [frame.x + 40, frame.y + 60] : fits ? [c.r + 30, c.y] : [frame.x + 40, c.b + 30]; // beside what is there while it fits, else below (the frame grows)
   }
   else if (all && at === 'right') { x = all.r + 80; y = all.y; }
   else if (all) { x = all.x; y = all.b + 80; }
   const dx = (X != null ? +X : x) - own.x, dy = (Y != null ? +Y : y) - own.y;
   for (const i of batch) if (!attached(i) || i.x != null) { i.x = (i.x || 0) + dx; i.y = (i.y || 0) + dy; }
   if (!f) return null;
-  const nb = bounds(batch), grow = { w: Math.max(f.w, nb.r + 40 - f.x), h: Math.max(f.h, nb.b + 40 - f.y) };
-  if (grow.w === f.w && grow.h === f.h) return null;
+  const nb = bounds(batch);
+  if (!nb) return null;
+  const grow = { w: Math.max(frame.w, nb.r + 40 - frame.x), h: Math.max(frame.h, nb.b + 40 - frame.y) };
+  if (grow.w === frame.w && grow.h === frame.h) return null;
   Object.assign(f, grow);
   return f.id;
 }
@@ -265,6 +270,17 @@ const commands = {
     const bb = bounds(all);
     out([`${n}: ${all.length} items${bb ? `, drawn within ${Math.round(bb.x)},${Math.round(bb.y)} to ${Math.round(bb.r)},${Math.round(bb.b)}; free space below y=${Math.round(bb.b + 80)} and right of x=${Math.round(bb.r + 80)}` : ''}`,
       '(id type x,y wxh "text" style; h is the rendered height; [frame] holds the indented items)', ...lines, ...(arrows.length ? ['arrows:', ...arrows] : [])].join('\n'));
+  },
+
+  overlaps() {
+    const n = name(pos[0]), { items } = L.read(n), id = pos[1], group = opt('group');
+    if (pos.length > 2 || [...flags].some(flag => !flag.startsWith('--group='))) {
+      die('usage: overlaps <board> [frame-id] [--group=<group>]');
+    }
+    const frame = id && items.find(i => i.id === id && i.type === 'frame');
+    if (id && !frame) die(`no frame "${id}" on "${n}"`);
+    if (group !== undefined && !items.some(i => i.group === group)) die(`no group "${group}" on "${n}"`);
+    out({ board: n, ...(frame && { frame: id }), ...(group !== undefined && { group }), ...L.inspectOverlaps(items, { frame, group }) });
   },
 
   types() {

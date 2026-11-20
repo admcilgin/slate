@@ -114,7 +114,7 @@ function mermaidItems(src, prefix = 'mm-') {
     }
     const x = Math.round(Math.min(...P.map(p => p[0]))), y = Math.round(Math.min(...P.map(p => p[1])));
     items.push({
-      id: `${prefix}e${k + 1}`, type: 'line', x, y, points: P.map(p => [Math.round(p[0]) - x, Math.round(p[1]) - y]),
+      id: `${prefix}edge-${k + 1}`, type: 'line', x, y, points: P.map(p => [Math.round(p[0]) - x, Math.round(p[1]) - y]),
       from: prefix + e.a, to: prefix + e.b, ...(ahead ? { elbow: true } : {}),
       ...(e.head ? { arrow: e.back ? 'both' : true } : {}), ...(e.line.includes('.') ? { dash: true } : {}), ...(e.line.startsWith('=') ? { width: 4 } : {}),
       ...(e.label?.trim() ? { label: clean(e.label) } : {}),

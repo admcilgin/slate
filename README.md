@@ -119,6 +119,7 @@ Agents working elsewhere on your machine use the CLI. It edits board files direc
 ```sh
 slate status                      # where Slate lives, boards, URL if the server is up or the web copy has them open
 slate map demo                    # the layout in few tokens: one line per item, nested by frame, plus free space
+slate overlaps demo               # component overlaps and frame crossings as JSON
 slate show demo                   # every item, one per line
 slate new "Launch plan"           # create a board
 slate add demo '{"type":"note","text":"Ship it"}'
@@ -129,6 +130,16 @@ slate set demo <id> '{"color":"#34c759"}'
 slate rm demo <id>
 slate start                       # start the server in the background; stop ends it
 ```
+
+Pass a frame ID from `slate map` to check a section, or use `--group` to check pairs where at least one item belongs to that group.
+
+```sh
+slate overlaps demo checkout-frame
+slate overlaps demo --group=checkout
+slate overlaps demo checkout-frame --group=checkout
+```
+
+The JSON output lists component pairs under `overlaps` and partial frame crossings under `frameCrossings`. Each result includes the intersection rectangle in board coordinates. The command leaves the board unchanged and estimates heights for cards that grow with their content.
 
 The board also works the other way round, as the thing you point with:
 

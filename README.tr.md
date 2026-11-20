@@ -119,6 +119,7 @@ Bilgisayarınızın başka bir yerinde çalışan ajanlar komut satırı aracın
 ```sh
 slate status                      # Slate nerede, panolar, sunucu açıksa ya da web kopyası açtıysa adresi
 slate map demo                    # yerleşim az token'la: öğe başına bir satır, çerçeveye göre iç içe, boş alanlar
+slate overlaps demo               # öğe çakışmaları ve çerçeve sınırı aşımları, JSON olarak
 slate show demo                   # tüm öğeler, satır başına bir tane
 slate new "Lansman planı"         # pano oluştur
 slate add demo '{"type":"note","text":"Yayınla"}'
@@ -129,6 +130,16 @@ slate set demo <id> '{"color":"#34c759"}'
 slate rm demo <id>
 slate start                       # sunucuyu arka planda başlat; stop durdurur
 ```
+
+Bir bölümü taramak için `slate map` çıktısındaki çerçeve ID’sini kullanın. `--group` filtresi, en az bir öğesi belirtilen gruba ait çiftleri gösterir.
+
+```sh
+slate overlaps demo checkout-frame
+slate overlaps demo --group=checkout
+slate overlaps demo checkout-frame --group=checkout
+```
+
+JSON çıktısında çakışan öğe çiftleri `overlaps`, çerçeve sınırını kısmen aşan öğeler `frameCrossings` altında yer alır. Her sonuç pano koordinatlarında bir kesişim dikdörtgeni içerir. Komut panoyu değiştirmeden çalışır ve içeriğe göre büyüyen kartların yüksekliğini tahmin eder.
 
 Pano ters yönde de çalışır: ajana bir şeyi göstermek için kullanırsınız.
 

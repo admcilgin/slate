@@ -1,7 +1,7 @@
 ---
 name: slate
 metadata:
-  version: "3"
+  version: "4"
 description: Read and edit the user's Slate whiteboard boards from any project. Use when the user mentions Slate, their whiteboard or board ("put this on my board", "add to the board", "what's on my board", "tahtaya ekle", "boarda yaz"), or asks to lay out a diagram, flow, screen annotation, endpoint or JSON response, task list, kanban board, metric cards, callouts, table, chart, timeline or notes visually, or to start a new board for a project or topic ("yeni pano aç", "bu proje için board oluştur"). Works without opening the app or running its server.
 ---
 
@@ -18,6 +18,7 @@ Run every command as `slate <command>`. If the shell cannot find `slate`, use `n
 | `status` | Where Slate lives, the boards, the server URL if running, under `web` the web copy that last opened them (`open`: a tab has them now), and under `skills` whether each agent's Slate skill is current |
 | `boards` | Boards with item counts |
 | `map <board> [frame]` | **Read the board here first.** One line per item: `id type x,y wxh "text" style`, nested under its frame; arrows as `a -> b "label"`; where the free space is. Heights are the rendered ones |
+| `overlaps <board> [frame-id]` | Report component overlaps and frame crossings as JSON. Add `--group=<group>` to check pairs involving that group. Includes same-group overlaps |
 | `show <board> [id…]` | Full JSON of items, one per line. Ids narrow it; a frame id brings its contents. Use it before a `set` that needs the current field values |
 | `types` | Every item type with its fields, default size and the palette (~500 tokens). Run it once before your first `add` |
 | `new <board>` | Create an empty board |
@@ -44,11 +45,19 @@ For large or quote-heavy JSON, pipe it: `slate add main - <<'JSON' … JSON`. Bo
 1. **Find the board.** `status`. If the boards the user means are not listed, they may keep them in a folder of their own: ask for its path and run `use <folder>` once. If they didn't name a board and there are several, ask, or `new "<topic>"` when the work is its own topic.
 2. **Read with `map`, not a screenshot.** It gives ids, positions, rendered sizes, text, frames, arrows and free space in a few tokens. `show <board> <id>` only for the full fields of what you will change.
 3. **Write in one call, relative, and let the CLI place it.** Build the whole layout as an array starting at 0,0, give every item a readable id (`"login-api"`) and explicit relative `x`/`y`, and send it with `add --at=below` (or `right`, or a frame id). Lay items out on a grid: 20–40 px gaps, shapes 160×100, notes 200×200 (see `types`).
-4. **Read the reply.** `warn` lists overlaps, items crossing a frame's edge, unknown fields and lines to missing ids. Fix them with `set` (move `x`/`y`) until there is no `warn`. No screenshot needed.
+4. **Check the layout.** Read `warn` after a write. Run `slate overlaps <board> [frame-id] [--group=<group>]` to inspect the existing layout, including same-group overlaps. If the installed CLI lacks the command, use `node "{{SLATE}}/cli.js" overlaps …` with the same arguments. Use `set` to adjust placement when asked.
 5. **Change with `set`, not delete-and-add**; it keeps the id. To change a list (`tasks`, `rows`, `data`, `events`, `columns`), `set` the whole array. Duplicate a section with `copy`.
 6. **Tell the user where to look.** `new` and `add` print `url`. If it is null, give `https://admcilgin.github.io/slate/#<board>` (Chrome, Edge or Brave; the first time it asks for a folder: `{{SLATE}}/data`). Run `start` only if they want the local copy. You never need the server yourself.
 7. **Let the user point.** "this" / "the selected ones" → `selection`. "Watch the board" → loop on `wait <board> --timeout=<s>` and act on what they added or changed. Freehand strokes (`draw`) are only numbers: `shot` to see them.
 8. **Work a kanban like a task queue.** `cards`, `move` the card to the in-progress column before starting, to done only when finished and checked; if stuck, leave it with `--note="<what blocks>"`. Use `move`, not `set` on `columns`.
+
+## Checking for overlaps
+
+- `slate overlaps demo` scans the whole board. Get frame IDs from `slate map demo`.
+- `slate overlaps demo checkout-frame` includes components inside the frame and those crossing its edge.
+- `slate overlaps demo checkout-frame --group=checkout` keeps pairs involving at least one item in that group. Omit the frame ID to check the group across the board.
+
+Read `overlaps` for item pairs and their shared frames. Read `frameCrossings` for the item and frame IDs when a boundary cuts through an item or another frame. Both arrays include an `intersection` rectangle in board coordinates. The check is read-only and uses estimated heights for cards that grow with their content.
 
 ## Rules
 
